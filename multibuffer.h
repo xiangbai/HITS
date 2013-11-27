@@ -18,4 +18,4 @@ struct multi_buffer
  *   then moves the second buffer to the first position
  *   then places the new buffer at the second position
  */
-void push_to_double_buffer(char *double_buffer, char *buffer, size_t size);
+void push_to_multibuffer(char *double_buffer, char *buffer, size_t size);

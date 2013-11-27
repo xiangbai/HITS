@@ -1,8 +1,6 @@
 /**************************************************************
- * doublebuffer.c
+ * multibuffer.c
  * 
- * helper function(s) to construct string of length 2x
- *   from strings of length x 
  * this solves the problem of searching through buffer strings
  *   when the searched-for string spans 2 buffer strings
  **************************************************************/
@@ -13,7 +11,7 @@
  *   then moves the second buffer to the first position
  *   then places the new buffer at the second position
  */
-void push_to_double_buffer(char *double_buffer, char *buffer, size_t size)
+void push_to_multibuffer(char *double_buffer, char *buffer, size_t size)
 {
 	// store the size of the buffer minus its null character
 	size_t = content_size = size - sizeof(char);
