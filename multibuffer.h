@@ -15,7 +15,7 @@ struct multi_buffer
 /*
  * push a new buffer to the doublebuffer
  * this removes the first buffer in the double buffer
- *   then moves the second buffer to the first position
- *   then places the new buffer at the second position
+ * then moves the second buffer to the first position
+ * then places the new buffer at the second position
  */
 void push_to_multibuffer(char *double_buffer, char *buffer, size_t size);

@@ -1,18 +1,18 @@
 #include <stdlib.h>
 
-struct string_node
+typdef struct
 {
 	char *string;
 	struct string_node *next;
-};
+} string_node;
 
 
-struct string_queue
+typedef struct 
 {
 	struct string_node *front;
 	struct string_node *back;
 	size_t size;
-};
+} string_queue;
 
 void string_queue_push(struct string_queue *queue, char *string);
 
