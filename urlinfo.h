@@ -1,3 +1,6 @@
+#ifndef URLINFO_H
+#define URLINFO_H
+
 /****************************
  * urlinfo.h
  * Holds struct urlinfo
@@ -18,3 +21,5 @@ struct urlinfo
  * construct a url from a (possibly) relative address
  */
 struct urlinfo makeURL(char *givenAddress, char *currentURL);
+
+#endif
