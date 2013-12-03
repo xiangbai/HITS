@@ -23,6 +23,7 @@ typedef struct string_llist {
 	struct string_node *front;
 	struct string_node *back;
 	size_t size;
+	size_t num_chars;
 } string_llist;
 
 /*
@@ -44,17 +45,12 @@ void string_llist_push_back(string_llist *list, char *string);
 /*
  * Pop from the front of the linked list
  */
-char *string_llist_pop_front(string_llist *list);
+int string_llist_pop_front(string_llist *list, char *destination);
 
 /*
  * Pop from the back of the linked list
  */
-char *string_llist_pop_back(string_llist *list);
-
-/*
- * Count the number of non-null characters in all strings in the linked list.
- */
-size_t string_llist_count_chars(string_llist *list);
+int string_llist_pop_back(string_llist *list, char *destination);
 
 /*
  * Print the linked list from front to back
