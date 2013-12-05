@@ -10,12 +10,12 @@
 #define HOST_LENGTH 128
 #define PATH_LENGTH 2048
 
-typdef struct
+typedef urlinfo
 {
 	char *host;
 	char *path;
 	struct urlinfo *next;
-} urlinfo;
+};
 
 /*
  * construct a url from a (possibly) relative address
