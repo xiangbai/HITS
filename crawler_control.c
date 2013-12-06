@@ -10,18 +10,22 @@
 #define BUFFER_SIZE 1024
 
 char *loadPage(int socket);
+void getRequest(urlinfo *url, char *request);
 
 /* main routine for testing our crawler's funcitonality */
 int main(void)
 {
 	int socket;
 	int port = 80;
-	char *request;
+	char request[20];
 	struct url_queue linkstocheck;
 	struct url_queue allURLs;
 	struct urlinfo *newURL;
 	struct urlinfo seedURL;
 	
+	char port_string[3];
+	sprintf(port_string, "%d", port);
+
 	// initialize queues
 	linkstocheck.size = 0;
 	allURLs.size = 0;
@@ -41,22 +45,24 @@ int main(void)
 		newURL = pop_url(&linkstocheck);
 		
 		// temporarily replaced the following line for testing
-		//request = getRequest(newURL);
-		request = "GET / HTTP/1.0\n\n";
+		getRequest(newURL, request);
+		//request = "GET / HTTP/1.0\n\n";
 
 		// returns -1 on failure
 		//if (connecttohost(socket, newURL.host, port) == 0)
 		//socket = socket_connect(newURL.host, newURLpath, port, request);
-		char port_string[3];
-		sprintf(port_string, "%d", port);
+		
 		socket = connect_socket(newURL->host, port_string, stdout);
 		if (socket >= 0)
 		{
 			// send http requrest
+			fputs("sending http request: ", stdout);
+			fputs(request, stdout);
 			send(socket, request, strlen(request), 0);
 			
 			// get code
 			char *code = loadPage(socket);
+			fputs(code, stdout);
 			
 			// create linked list to hold hyperlinks from code
 			string_llist links_in_code;
@@ -70,6 +76,9 @@ int main(void)
 		}
 		else
 			report_error("socket_connect() failed");
+		
+		// close the socket
+		close(socket);
 	}
 
 	print_queue(&allURLs);
@@ -77,6 +86,12 @@ int main(void)
 	return 0;
 }
 
+void getRequest(urlinfo *url, char *request)
+{
+	strcpy(request, "GET ");
+	strcat(request, url->path);
+	strcat(request, " HTTP/1.0\n\n");
+}
 
 int get_links(char *code, string_llist *list)
 {
