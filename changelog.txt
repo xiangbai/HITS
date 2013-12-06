@@ -3,3 +3,11 @@
 11/30:	removed double/multi buffer
 	  - it will be more clear to load all of a site's code and parse from there.
 	replaced string_queue w/ utils/string_linked_list
+
+12/05:	added typedef back to urlinfo
+	  - code I just merged depended upon it
+	  - We can change it back if that would be better, though.
+
+12-06:	added utils/parser.[ch]
+	crawler_control currently just grabs the whole <a> tag
+	needs to be updated to pull just the link

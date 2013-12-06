@@ -16,7 +16,7 @@ void string_llist_push_front(string_llist *list, char *string)
 {
 	// create new node
 	string_node *node = (string_node *) malloc(sizeof(string_node));
-	char *newstring = malloc(sizeof(char) * strlen(string));
+	char *newstring = malloc(sizeof(char) * strlen(string) + 1);
 	strcpy(newstring, string);
 	node->string = newstring;
 	node->prev = NULL;
@@ -36,16 +36,17 @@ void string_llist_push_back(string_llist *list, char *string)
 {
 	// create new node
 	string_node *node = (string_node *) malloc(sizeof(string_node));
-	char *newstring = malloc(sizeof(char) * strlen(string));
+	char *newstring = malloc(sizeof(char) * strlen(string) + 1);
 	strcpy(newstring, string);
 	node->string = newstring;
 	node->next = NULL;
-
+	
 	// put it into the list
 	if (!list->size)
 		list->front = node;
 	else
 		list->back->next = node;
+	
 	node->prev = list->back;
 	list->back = node;
 	list->size++;
@@ -110,6 +111,7 @@ int string_llist_pop_back(string_llist *list, char *destination)
 
 void string_llist_printforward(string_llist *list)
 {
+	printf("printing %d strings:\n", list->size);
 	string_node *node = list->front;
 	while (node != NULL)
 	{

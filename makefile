@@ -1,10 +1,13 @@
 all: crawler
 
-crawler: crawler_control.o string_linked_list.o get_address_info.o url_queue.o report_error.o
-	gcc crawler_control.o string_linked_list.o get_address_info.o url_queue.o report_error.o -o crawler
+crawler: crawler_control.o string_linked_list.o get_address_info.o url_queue.o parser.o report_error.o
+	gcc crawler_control.o string_linked_list.o get_address_info.o url_queue.o parser.o report_error.o -o crawler -lpcre
 
 crawler_control.o: crawler_control.c
 	gcc -c crawler_control.c
+
+parser.o: utils/parser.c
+	gcc -c utils/parser.c -lpcre
 
 url_queue.o: url_queue.c
 	gcc -c url_queue.c

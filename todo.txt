@@ -1,3 +1,5 @@
 // This is the todo/notes file
 
-
+[x] parse code for links
+[ ] only grab part of a parsed link
+[ ] parse links to find if they are relative or absolute

@@ -3,6 +3,7 @@
 #include <string.h>
 #include "utils/string_linked_list.h"
 #include "utils/report_error.h"
+#include "utils/parser.h"
 #include "get_address_info.h"
 #include "url_queue.h"
 #include "urlinfo.h"
@@ -15,6 +16,8 @@ void getRequest(urlinfo *url, char *request);
 /* main routine for testing our crawler's funcitonality */
 int main(void)
 {
+	char pattern[] = "<a [^>]*?href *?= *?[\'\"]([^\">]+)[\'\"].*?>";
+	parser *regexparser;
 	int socket;
 	int port = 80;
 	char request[20];
@@ -26,13 +29,16 @@ int main(void)
 	char port_string[3];
 	sprintf(port_string, "%d", port);
 
+	// initialize parser
+	regexparser = init_parser(pattern);
+
 	// initialize queues
 	linkstocheck.size = 0;
 	allURLs.size = 0;
 
 
 	//seed list
-	seedURL.host = "www.google.com";
+	seedURL.host = "google.com";
 	seedURL.path = "/";
 	
 	push_url(&linkstocheck, &seedURL);
@@ -46,11 +52,6 @@ int main(void)
 		
 		// temporarily replaced the following line for testing
 		getRequest(newURL, request);
-		//request = "GET / HTTP/1.0\n\n";
-
-		// returns -1 on failure
-		//if (connecttohost(socket, newURL.host, port) == 0)
-		//socket = socket_connect(newURL.host, newURLpath, port, request);
 		
 		socket = connect_socket(newURL->host, port_string, stdout);
 		if (socket >= 0)
@@ -62,12 +63,11 @@ int main(void)
 			
 			// get code
 			char *code = loadPage(socket);
-			fputs(code, stdout);
-			
+				
 			// create linked list to hold hyperlinks from code
-			string_llist links_in_code;
-			string_llist_init(&links_in_code);
-			int got_links = get_links(code, &links_in_code);
+			string_llist *links_in_code = malloc(sizeof(string_llist));
+			string_llist_init(links_in_code);
+			int got_links = get_links(code, regexparser, links_in_code);
 
 			// parse links, push to both queues, -1 for failure
 			//if (readHTML(socket, host, path, &linkstocheck) == -1)
@@ -93,9 +93,15 @@ void getRequest(urlinfo *url, char *request)
 	strcat(request, " HTTP/1.0\n\n");
 }
 
-int get_links(char *code, string_llist *list)
+int get_links(char *code, parser *p, string_llist *list)
 {
-	fputs("Parsing links.. (not yet implemented)\n", stdout);
+	fputs("parsing links..\n\n", stdout);
+	// get list of links using regex
+	int codelen = strlen(code);
+	parse_all(p, code, codelen, list);
+	string_llist_printforward(list);	
+
+	return 0;
 }
 
 /*
