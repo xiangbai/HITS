@@ -2,9 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "utils/string_linked_list.h"
-//#include "utils/report_error.h"
 #include "utils/parser.h"
-//#include "get_address_info.h"
 #include "utils/general_utils.h"
 #include "utils/socket_utils.h"
 #include "url_queue.h"
@@ -71,7 +69,7 @@ int main(void)
 			// create linked list to hold hyperlinks from code
 			string_llist *links_in_code = malloc(sizeof(string_llist));
 			string_llist_init(links_in_code);
-			int got_links = get_links(code, regexparser, links_in_code);
+			get_links(code, regexparser, links_in_code);
 
 			// parse links, push to both queues, -1 for failure
 			//if (readHTML(socket, host, path, &linkstocheck) == -1)
