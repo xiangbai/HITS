@@ -1,41 +1,86 @@
 #include <stdlib.h>
-#include "string_linked_list.h"
+#include <stdio.h>
+#include <string.h>
+#include "utils/string_linked_list.h"
+#include "utils/report_error.h"
+#include "get_address_info.h"
+#include "url_queue.h"
+#include "urlinfo.h"
 
 #define BUFFER_SIZE 1024
+
+char *loadPage(int socket);
 
 /* main routine for testing our crawler's funcitonality */
 int main(void)
 {
 	int socket;
 	int port = 80;
-	url_queue linkstocheck;
-	url_queue allURLs;
-	url_info newURL;
+	char *request;
+	struct url_queue linkstocheck;
+	struct url_queue allURLs;
+	struct urlinfo *newURL;
+	struct urlinfo seedURL;
 	
+	// initialize queues
+	linkstocheck.size = 0;
+	allURLs.size = 0;
+
+
 	//seed list
-	newURL.host = "www.google.com";
-	newURL.path = "/";
-	push_url(newURL);
-
+	seedURL.host = "www.google.com";
+	seedURL.path = "/";
+	
+	push_url(&linkstocheck, &seedURL);
+	push_url(&allURLs, &seedURL);
+	
 	int i;
-	for(i = 0; i < 20; ++)
+	for(i = 0; i < 1; i++)
 	{
-		socket = socket(AF_INET, SOCK_STREAM, 0);
-		
+		//socket = socket(AF_INET, SOCK_STREAM, 0);
 		newURL = pop_url(&linkstocheck);
+		
+		// temporarily replaced the following line for testing
+		//request = getRequest(newURL);
+		request = "GET / HTTP/1.0\n\n";
 
-		// returns non 0 upon failure
-		if (connecttohost(socket, newURL.host, port) == 0)
-		{	//send request, parse links, push to both queues, -1 for failure
-			if (readHTML(socket, host, path, &linkstocheck) == -1)
-				report_error("readHTML error");
+		// returns -1 on failure
+		//if (connecttohost(socket, newURL.host, port) == 0)
+		//socket = socket_connect(newURL.host, newURLpath, port, request);
+		char port_string[3];
+		sprintf(port_string, "%d", port);
+		socket = connect_socket(newURL->host, port_string, stdout);
+		if (socket >= 0)
+		{
+			// send http requrest
+			send(socket, request, strlen(request), 0);
+			
+			// get code
+			char *code = loadPage(socket);
+			
+			// create linked list to hold hyperlinks from code
+			string_llist links_in_code;
+			string_llist_init(&links_in_code);
+			int got_links = get_links(code, &links_in_code);
+
+			// parse links, push to both queues, -1 for failure
+			//if (readHTML(socket, host, path, &linkstocheck) == -1)
+			//	report_error("readHTML error");
+
 		}
 		else
-			report_error("connecttohost() failed");
+			report_error("socket_connect() failed");
 	}
 
-	display_queue(*allURLs);
+	print_queue(&allURLs);
+	
 	return 0;
+}
+
+
+int get_links(char *code, string_llist *list)
+{
+	fputs("Parsing links.. (not yet implemented)\n", stdout);
 }
 
 /*
@@ -45,10 +90,11 @@ int main(void)
  */
 char *loadPage(int socket)
 {
+	fputs("loading code..\n", stdout);
 	// declare variables
-	char buffer[] = new char[BUFFER_SIZE];
+	char buffer[BUFFER_SIZE];
 	int bytes_received = 0;
-	string_ll list;
+	string_llist list;
 
 	// clear list
 	string_llist_init(&list);
@@ -63,7 +109,7 @@ char *loadPage(int socket)
 	} while (bytes_received);
 
 	// allocate enough space to store code in linked list (and null char)
-	char code[] = (char *) malloc(list.num_chars + 1) * sizeof(char));
+	char *code = (char *) malloc((list.num_chars + 1) * sizeof(char));
 
 	// load code from linked list to string
 	size_t current_index = 0;
