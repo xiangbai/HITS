@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "utils/string_linked_list.h"
-#include "utils/report_error.h"
-#include "get_address_info.h"
+#include "utils/general_utils.h"
+#include "utils/socket_utils.h"
 #include "url_queue.h"
 #include "urlinfo.h"
 

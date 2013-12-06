@@ -1,20 +1,23 @@
+CC = gcc
+CFLAGS = -Wall -g
+OBJECTS = objectfiles/crawler_control.o objectfiles/socket_utils.o objectfiles/general_utils.o objectfiles/url_queue.o objectfiles/string_linked_list.o
+
 all: crawler
 
-crawler: crawler_control.o string_linked_list.o get_address_info.o url_queue.o report_error.o
-	gcc crawler_control.o string_linked_list.o get_address_info.o url_queue.o report_error.o -o crawler
+crawler : $(OBJECTS)
+	$(CC) $(CFLAGS) $(OBJECTS) -o crawler
 
-crawler_control.o: crawler_control.c
-	gcc -c crawler_control.c
+objectfiles/crawler_control.o: crawler_control.c
+	$(CC) $(CFLAGS) -c $< -o objectfiles/crawler_control.o
 
-url_queue.o: url_queue.c
-	gcc -c url_queue.c
+objectfiles/socket_utils.o: utils/socket_utils.c
+	$(CC) $(CFLAGS) -c $< -o objectfiles/socket_utils.o
 
-string_linked_list.o: utils/string_linked_list.c
-	gcc -c utils/string_linked_list.c
+objectfiles/general_utils.o: utils/general_utils.c
+	$(CC) $(CFLAGS) -c $< -o objectfiles/general_utils.o
 
-report_error.o: utils/report_error.c
-	gcc -c utils/report_error.c
+objectfiles/url_queue.o: url_queue.c
+	$(CC) $(CFLAGS) -c $< -o objectfiles/url_queue.o
 
-get_address_info.o: get_address_info.c utils/report_error.c
-	gcc -c get_address_info.c utils/report_error.c
-
+objectfiles/string_linked_list.o: utils/string_linked_list.c
+	$(CC) $(CFLAGS) -c $< -o objectfiles/string_linked_list.o
