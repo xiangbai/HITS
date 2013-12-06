@@ -14,6 +14,8 @@
 
 char *loadPage(int socket);
 void getRequest(urlinfo *url, char *request);
+int get_links(char *code, parser *p, string_llist *list);
+void getRequest(urlinfo *url, char *request);
 
 /* main routine for testing our crawler's funcitonality */
 int main(void)
