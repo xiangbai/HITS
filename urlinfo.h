@@ -10,7 +10,7 @@
 #define HOST_LENGTH 128
 #define PATH_LENGTH 2048
 
-typdef struct
+typedef struct urlinfo
 {
 	char *host;
 	char *path;
