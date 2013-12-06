@@ -38,7 +38,7 @@ struct urlinfo *pop_url(struct url_queue *queue)
 /*
  * print each url in a queue
  */
-void print_url(struct url_queue *queue)
+void print_queue(struct url_queue *queue)
 {
 	
 }
