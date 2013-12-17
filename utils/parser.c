@@ -35,7 +35,7 @@ parser *init_parser(char *regex)
 	return p;
 }
 
-void parse_all(parser *p, char *text, size_t textlen, string_llist *destination)
+void parse_all(parser *p, char *text, size_t textlen, string_llist *destination, int substring_index)
 {
 	//int vector[p->vectorsize];
 	int vector[p->vectorsize];
@@ -54,8 +54,8 @@ void parse_all(parser *p, char *text, size_t textlen, string_llist *destination)
 			break;
 
 		// get start and one-past-the-end of the first part of the regex
-		int stringbegin = vector[0];
-		int stringend = vector[1];
+		int stringbegin = vector[substring_index * 2];
+		int stringend = vector[substring_index * 2 + 1];
 		int stringsize = stringend - stringbegin;
 		
 		// if match isn't found, break

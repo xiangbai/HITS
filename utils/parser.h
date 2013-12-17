@@ -17,9 +17,12 @@ typedef struct parser
 parser *init_parser(char *regex);
 
 /*
- * Create a linked list holding all values obtained from running regex p on text
+ * Add all values obtained from running regex p on text to linked list.
+ * substring_index indicates which substring to seach for. 
+ *	0 = entire pattern
+ *	1 = the first substring in parentheses, etc.
  */
-void parse_all(parser *p, char *text, size_t textlen, string_llist *destination);
+void parse_all(parser *p, char *text, size_t textlen, string_llist *destination, int substring_index);
 
 /*
  * Free memory associated with a parser
