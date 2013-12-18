@@ -25,6 +25,11 @@ parser *init_parser(char *regex);
 void parse_all(parser *p, char *text, size_t textlen, string_llist *destination, int *substring_indexes, int num_substrings);
 
 /*
+ * Put the first instance of each substring into an array
+ */
+int substrings_to_array(parser *p, char *text, size_t textlen, size_t offset, char **array, size_t size);
+
+/*
  * Free memory associated with a parser
  */
 void kill_parser(parser *p);

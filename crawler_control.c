@@ -72,10 +72,6 @@ int main(void)
 			int substrings[] = {0, 1};
 			get_links(code, regexparser, links_in_code, substrings, 2);
 
-			// parse links, push to both queues, -1 for failure
-			//if (readHTML(socket, host, path, &linkstocheck) == -1)
-			//	report_error("readHTML error");
-
 		}
 		else
 			report_error("socket_connect() failed");
@@ -99,6 +95,7 @@ void getRequest(urlinfo *url, char *request)
 int get_links(char *code, parser *p, string_llist *list, int *substrings, int num_substrings)
 {
 	fputs("parsing links..\n\n", stdout);
+	
 	// get list of links using regex
 	int codelen = strlen(code);
 	parse_all(p, code, codelen, list, substrings, num_substrings);
