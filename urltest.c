@@ -31,7 +31,7 @@ urlinfo *getparts(char *string)
 	// print selected substrings
 	printf("Domain: %s\n", current->host);
 	printf("Path: %s\n", current->path);
-	printf("File: %s\ni\n", current->filename);
+	printf("File: %s\n\n", current->filename);
 
 	return current;
 }
