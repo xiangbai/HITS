@@ -11,10 +11,10 @@
  * Any subsequent calls may use relative urls
  */ 
 
-urlinfo *getparts(char *string)
 urlinfo *current;
 urlinfo *prev;
 
+urlinfo *getparts(char *string)
 {
 	printf("Analyzing %s\n----------------------------\n", string);
 	
