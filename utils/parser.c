@@ -1,10 +1,10 @@
 #include "parser.h"
 #include "string_linked_list.h"
+#include "general_utils.h"
+
 #include <pcre.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <stdio.h>
 
 parser *init_parser(char *regex)
 {
@@ -17,10 +17,7 @@ parser *init_parser(char *regex)
 	// compile regex
 	p->re = pcre_compile(regex, 0, &error, &erroroffset, 0);
 	if (!p->re)
-	{
-		printf("error comiling regen");
-		return NULL;
-	}
+		report_error("Error compiling regex");
 
 	// study regexp so pcre_exec can be optimized
 	p->study = pcre_study(p->re, 0, &error);
@@ -37,7 +34,6 @@ parser *init_parser(char *regex)
 
 void parse_all(parser *p, char *text, size_t textlen, string_llist *destination, int *substring_indexes, int num_substrings)
 {
-	//int vector[p->vectorsize];
 	int vector[p->vectorsize];
 	int offset = 0;
 	int nummatches = 0;
@@ -62,6 +58,10 @@ void parse_all(parser *p, char *text, size_t textlen, string_llist *destination,
 		{
 			// get start and one-past-the-end of the first part of the regex
 			int stringbegin = vector[substring_indexes[i] * 2];
+			
+			if (stringbegin < 0)
+				continue;
+			
 			int stringend = vector[substring_indexes[i] * 2 + 1];
 			int stringsize = stringend - stringbegin;
 		
@@ -78,6 +78,43 @@ void parse_all(parser *p, char *text, size_t textlen, string_llist *destination,
 		// update starting offset
 		offset = vector[1];
 	}
+}
+
+int substrings_to_array(parser *p, char *text, size_t textlen, size_t offset, char **array, size_t size)
+{	
+	int vector[p->vectorsize];
+	int nummatches = 0;
+	int i;
+
+	// find matches for re with text, optimized w/ study
+	int retval = pcre_exec(p->re, NULL,//p->study, 
+		text, textlen, offset, 0, 
+		vector, p->vectorsize);
+	// if no matches found, break
+	if (retval < 0 || vector[0] < 0)
+		return -1;
+	
+	for (i = 0; i < size; i++)
+	{
+		// get start and one-past-the-end of the first part of the regex
+		int stringbegin = vector[i * 2];
+		
+		if (stringbegin < 0)
+			array[i] = NULL;
+		
+		int stringend = vector[i * 2 + 1];
+		int stringsize = stringend - stringbegin;
+	
+		// copy match to a new string
+		char *newstring = (char *)malloc(stringsize + 1);
+		//strcpy(newstring, text + stringbegin);
+		memcpy(newstring, text + stringbegin, stringsize);
+		newstring[stringsize] = '\0';
+			
+		// add to array
+		array[i] = newstring;
+	}
+	return 0;
 }
 
 void kill_parser(parser *p)
