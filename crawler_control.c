@@ -12,7 +12,7 @@
 
 char *loadPage(int socket);
 void getRequest(urlinfo *url, char *request);
-int get_links(char *code, parser *p, string_llist *list, int substring_index);
+int get_links(char *code, parser *p, string_llist *list, int *substrings, int num_substrings);
 void getRequest(urlinfo *url, char *request);
 
 /* main routine for testing our crawler's funcitonality */
@@ -69,7 +69,8 @@ int main(void)
 			// create linked list to hold hyperlinks from code
 			string_llist *links_in_code = malloc(sizeof(string_llist));
 			string_llist_init(links_in_code);
-			get_links(code, regexparser, links_in_code, 1);
+			int substrings[] = {0, 1};
+			get_links(code, regexparser, links_in_code, substrings, 2);
 
 			// parse links, push to both queues, -1 for failure
 			//if (readHTML(socket, host, path, &linkstocheck) == -1)
@@ -95,12 +96,12 @@ void getRequest(urlinfo *url, char *request)
 	strcat(request, " HTTP/1.0\n\n");
 }
 
-int get_links(char *code, parser *p, string_llist *list, int substring_index)
+int get_links(char *code, parser *p, string_llist *list, int *substrings, int num_substrings)
 {
 	fputs("parsing links..\n\n", stdout);
 	// get list of links using regex
 	int codelen = strlen(code);
-	parse_all(p, code, codelen, list, substring_index);
+	parse_all(p, code, codelen, list, substrings, num_substrings);
 	string_llist_printforward(list);	
 
 	return 0;

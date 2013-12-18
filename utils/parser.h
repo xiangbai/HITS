@@ -22,7 +22,7 @@ parser *init_parser(char *regex);
  *	0 = entire pattern
  *	1 = the first substring in parentheses, etc.
  */
-void parse_all(parser *p, char *text, size_t textlen, string_llist *destination, int substring_index);
+void parse_all(parser *p, char *text, size_t textlen, string_llist *destination, int *substring_indexes, int num_substrings);
 
 /*
  * Free memory associated with a parser

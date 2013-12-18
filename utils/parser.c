@@ -35,13 +35,14 @@ parser *init_parser(char *regex)
 	return p;
 }
 
-void parse_all(parser *p, char *text, size_t textlen, string_llist *destination, int substring_index)
+void parse_all(parser *p, char *text, size_t textlen, string_llist *destination, int *substring_indexes, int num_substrings)
 {
 	//int vector[p->vectorsize];
 	int vector[p->vectorsize];
 	int offset = 0;
 	int nummatches = 0;
-	
+	int i;
+
 	// loop until no more matches are found
 	while (1)
 	{
@@ -53,26 +54,29 @@ void parse_all(parser *p, char *text, size_t textlen, string_llist *destination,
 		if (retval < 0)
 			break;
 
-		// get start and one-past-the-end of the first part of the regex
-		int stringbegin = vector[substring_index * 2];
-		int stringend = vector[substring_index * 2 + 1];
-		int stringsize = stringend - stringbegin;
-		
 		// if match isn't found, break
-		if (stringbegin < 0)
+		if (vector[0] < 0)
 			break;
 		
-		// copy match to a new string
-		char newstring[stringsize + 1];
-		//strcpy(newstring, text + stringbegin);
-		memcpy(newstring, text + stringbegin, stringsize);
-		newstring[stringsize] = '\0';
-			
-		// push to linked list
-		string_llist_push_back(destination, newstring);
+		for (i = 0; i < num_substrings; i++)
+		{
+			// get start and one-past-the-end of the first part of the regex
+			int stringbegin = vector[substring_indexes[i] * 2];
+			int stringend = vector[substring_indexes[i] * 2 + 1];
+			int stringsize = stringend - stringbegin;
 		
+			// copy match to a new string
+			char newstring[stringsize + 1];
+			//strcpy(newstring, text + stringbegin);
+			memcpy(newstring, text + stringbegin, stringsize);
+			newstring[stringsize] = '\0';
+				
+			// push to linked list
+			string_llist_push_back(destination, newstring);
+		}
+
 		// update starting offset
-		offset = stringend;
+		offset = vector[1];
 	}
 }
 
