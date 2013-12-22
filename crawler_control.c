@@ -14,6 +14,7 @@ char *loadPage(int socket);
 void getRequest(urlinfo *url, char *request);
 int get_links(char *code, parser *p, string_llist *list);
 void getRequest(urlinfo *url, char *request);
+void getUserSearchQuery(char *path);
 
 /* main routine for testing our crawler's funcitonality */
 int main(void)
@@ -22,32 +23,42 @@ int main(void)
 	parser *regexparser;
 	int socket;
 	int port = 80;
-	char request[20];
-	struct url_queue linkstocheck;
+	char request[PATH_LENGTH + 100]; //max path size + space for get request
+	//char request[20];
+    struct url_queue linkstocheck;
 	struct url_queue allURLs;
 	struct urlinfo *newURL;
 	struct urlinfo seedURL;
+    //following for testing
+    struct urlinfo seedURL2;
 	
 	char port_string[3];
 	sprintf(port_string, "%d", port);
 
-	// initialize parser
+    // initialize parser
 	regexparser = init_parser(pattern);
 
 	// initialize queues
 	linkstocheck.size = 0;
 	allURLs.size = 0;
 
-
 	//seed list
-	seedURL.host = "google.com";
-	seedURL.path = "/";
+	seedURL.host = "www.google.com";
+    //seedURL.path = "/";
+    getUserSearchQuery(seedURL.path);
 	
+    //following lines for testing
+    seedURL2.host = "www.yahoo.com";
+    seedURL2.path = "/";
+    
+    
 	push_url(&linkstocheck, &seedURL);
-	push_url(&allURLs, &seedURL);
+    //following line for testing
+    push_url(&linkstocheck, &seedURL2);
+	//push_url(&allURLs, &seedURL);
 	
 	int i;
-	for(i = 0; i < 1; i++)
+	for(i = 0; i < 2; i++)
 	{
 		//socket = socket(AF_INET, SOCK_STREAM, 0);
 		newURL = pop_url(&linkstocheck);
@@ -66,6 +77,9 @@ int main(void)
 			// get code
 			char *code = loadPage(socket);
 				
+            //following line for testing
+            //fputs(code, stdout);
+            
 			// create linked list to hold hyperlinks from code
 			string_llist *links_in_code = malloc(sizeof(string_llist));
 			string_llist_init(links_in_code);
@@ -92,7 +106,50 @@ void getRequest(urlinfo *url, char *request)
 {
 	strcpy(request, "GET ");
 	strcat(request, url->path);
-	strcat(request, " HTTP/1.0\n\n");
+	strcat(request, " HTTP/1.0\n");
+    strcat(request, "Host: ");
+    strcat(request, url->host);
+    strcat(request, "\n\n");
+}
+
+void getUserSearchQuery(char *path)
+{
+    char templine[(PATH_LENGTH/2)];
+    char *token;
+    const char delims[2] = {' ', '\n'};//"\n";
+    
+    fputs("enter a line of text\n", stdout);
+    
+    if (fgetline(templine, (int)sizeof(templine)-1) > 0) //read a line
+    {
+        token = strtok(templine, delims);
+        strcpy(path, "/search?q=");
+        
+        if (token != NULL)
+        {
+            strcat(path, token);
+            token = strtok(NULL, delims);
+        }
+        
+        while (token != NULL)
+        {
+            strcat(path, "+");
+            strcat(path, token);
+            token = strtok(NULL, delims);
+        }
+        
+        //attempts to search google with more organized xml output
+        //strcat(path, "&site=default_collection&client=default_frontend&output=xml_no_dtd&proxystylesheet=default_frontend");
+
+        
+        
+        //this works but is in html and has way too many superfluous links
+        //strcat(path, "&site=default_collection&client=default_fronted&output=html");
+        
+    }
+    else
+        report_error("getUserSearchQuery failed");
+
 }
 
 int get_links(char *code, parser *p, string_llist *list)
