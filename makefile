@@ -2,7 +2,7 @@
 
 CC = gcc	
 CFLAGS = -Wall -g 	# all warnings and debugger
-OBJECTS = objectfiles/crawler_control.o objectfiles/socket_utils.o objectfiles/general_utils.o objectfiles/url_queue.o objectfiles/string_linked_list.o objectfiles/parser.o
+OBJECTS = objectfiles/crawler_control.o objectfiles/socket_utils.o objectfiles/general_utils.o objectfiles/urlinfo.o objectfiles/url_linked_list.o objectfiles/string_linked_list.o objectfiles/parser.o objectfiles/status_code_util.o
 
 all: crawler
 

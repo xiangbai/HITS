@@ -5,6 +5,32 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/*
+ * Regex pattern used to parse urls
+ * 
+ * pcre will match the entire pattern, and save substrings enclosed in parentheses
+ * more substrings are returned than desired, because parentheses are also part of regex syntax
+ * assume output[] is returned by parser.substrings_to_array(), which uses pcre
+ * output[0]: string matching the entire string
+ * output[1]: domain
+ * output[2]: domain extension
+ * output[3]: a sequence of 0 or more "../", indicating how many folders to go up
+ * output[4]: the last instance of "../" if it exists
+ * output[5]: the path and filename following the domain and any instances of "../"
+		functions as the path for relative paths with no filename and not ending in '/'
+ * output[6]: path, assuming there is a filename, or the path ends in '/'
+ * output[7]: filename
+ * 
+ * Macros should always be used to extract info, because this pattern is likely to change
+ */
+#define URL_REGEX "(//)?(.+://)?([^/\\.]\\.)?(.+?\\.(com|coop|edu|net|org|uk))?/?((\\.\\./)*)((([^/]+/)*)?([^/\\.]+\\..+)?)?"
+#define URL_REGEX_NUM_SUBSTRINGS 12
+#define URL_REGEX_DOMAIN 4
+#define URL_REGEX_UP_FOLDER 6
+#define URL_REGEX_PATH 9
+#define URL_REGEX_PATH2 8
+#define URL_REGEX_FILE 11
+
 // Regex pattern to be used. Initialize once
 parser *regex = NULL;
 
@@ -23,8 +49,11 @@ urlinfo *makeURL(char *givenAddress, urlinfo *currentURL)
 		array[i] = NULL;	
 	
 	// put substrings into array
-	substrings_to_array(regex, givenAddress, strlen(givenAddress), 0, array, URL_REGEX_NUM_SUBSTRINGS);
-		
+	int found = substrings_to_array(regex, givenAddress, strlen(givenAddress), 0, array);
+	
+	if (found < 0)
+		return NULL;
+	
 	if (!strlen(array[URL_REGEX_DOMAIN]) && !currentURL)
 	{
 		// relative path, and no current url
@@ -119,10 +148,36 @@ urlinfo *makeURL(char *givenAddress, urlinfo *currentURL)
 	return newurl;	
 }
 
+char *url_tostring(urlinfo *url)
+{
+	size_t hostlen = strlen(url->host);
+	size_t pathlen = strlen(url->path);
+	size_t filelen = strlen(url->filename);
+	int haspath = (pathlen)? 1: 0;
+	int hasfile = (filelen)? 1: 0;
+	char *string = (char *)malloc(hostlen + pathlen + filelen + 1 + haspath + hasfile);
+	
+	// domain
+	strcpy(string, url->host);
+	
+	// path and file
+	if (haspath)
+	{
+		string[hostlen] = '/';
+		strcpy(string + hostlen + 1, url->path);
+	}
+	if (hasfile)
+	{
+		strcpy(string + hostlen + pathlen + haspath, "/");
+		strcpy(string + hostlen + pathlen + haspath + 1, url->filename);
+	}
+
+	return string;
+}
+
 urlinfo *freeURL(urlinfo *url)
 {
 	urlinfo *next = url->next;
-
 	free(url->host);
 	free(url->path);
 	free(url->filename);

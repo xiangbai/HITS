@@ -53,6 +53,11 @@ int string_llist_pop_front(string_llist *list, char *destination);
 int string_llist_pop_back(string_llist *list, char *destination);
 
 /*
+ * Find index within the list of a given string
+ */
+size_t string_llist_find(string_llist *list, char *string);
+
+/*
  * Print the linked list from front to back
  * Prints to stdout, one element per line.
  */

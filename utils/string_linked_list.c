@@ -109,6 +109,25 @@ int string_llist_pop_back(string_llist *list, char *destination)
 	return -1;
 }
 
+size_t string_llist_find(string_llist *list, char *string)
+{
+	size_t output = -1;
+	size_t index = 0;
+	string_node *node = list->front;
+	
+	while (node)
+	{
+		if (!strcmp(node->string, string))
+		{
+			output = index;
+			break;
+		}
+		node = node->next;
+		index++;
+	}
+	return output;
+}
+
 void string_llist_printforward(string_llist *list)
 {
 	printf("printing %d strings:\n", list->size);

@@ -10,6 +10,21 @@ parser *init_parser(char *regex)
 {
 	parser *p = malloc(sizeof(parser));
 	
+	/*
+	 * set the vector to hold results
+	 * each pair in the first 2/3 of vectorsize holds the beginning
+	 *	and one past the end of a substring's location
+	 * the last third is used internally in pcre_exec()
+	 * calculating number of substrings
+	 */
+	int count = 0;
+	int i;
+	int regex_len = strlen(regex);
+	for (i = 0; i < regex_len; i++)
+		if (regex[i] == '(')
+			count++;
+	p->vectorsize = 3 * (count + 1);
+	
 	// variables for holding error info
 	const char *error;
 	int erroroffset;
@@ -21,24 +36,16 @@ parser *init_parser(char *regex)
 
 	// study regexp so pcre_exec can be optimized
 	p->study = pcre_study(p->re, 0, &error);
-
-	/*
-	 * set the vector to hold results
-	 * each pair in the first 2/3 of vectorsize holds the beginning
-	 *	and one past the end of a string's location
-	 * the last third is used internally in pcre_exec()
-	 */
-	p->vectorsize = 30;
 	return p;
 }
 
-void parse_all(parser *p, char *text, size_t textlen, string_llist *destination, int *substring_indexes, int num_substrings)
+void parse_all(parser *p, char *text, size_t textlen, string_llist *destination, int *substring_indexes, size_t size)
 {
 	int vector[p->vectorsize];
 	int offset = 0;
 	int nummatches = 0;
 	int i;
-
+	
 	// loop until no more matches are found
 	while (1)
 	{
@@ -54,7 +61,7 @@ void parse_all(parser *p, char *text, size_t textlen, string_llist *destination,
 		if (vector[0] < 0)
 			break;
 		
-		for (i = 0; i < num_substrings; i++)
+		for (i = 0; i < size; i++)
 		{
 			// get start and one-past-the-end of the first part of the regex
 			int stringbegin = vector[substring_indexes[i] * 2];
@@ -80,21 +87,22 @@ void parse_all(parser *p, char *text, size_t textlen, string_llist *destination,
 	}
 }
 
-int substrings_to_array(parser *p, char *text, size_t textlen, size_t offset, char **array, size_t size)
+int substrings_to_array(parser *p, char *text, size_t textlen, size_t offset, char **array)
 {	
 	int vector[p->vectorsize];
 	int nummatches = 0;
 	int i;
-
+	int numsubstrings = p->vectorsize / 3;
 	// find matches for re with text, optimized w/ study
 	int retval = pcre_exec(p->re, NULL,//p->study, 
 		text, textlen, offset, 0, 
 		vector, p->vectorsize);
-	// if no matches found, break
+
+	// if no matches found, return -1
 	if (retval < 0 || vector[0] < 0)
 		return -1;
 	
-	for (i = 0; i < size; i++)
+	for (i = 0; i < numsubstrings; i++)
 	{
 		// get start and one-past-the-end of the first part of the regex
 		int stringbegin = vector[i * 2];

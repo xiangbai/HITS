@@ -22,12 +22,12 @@ parser *init_parser(char *regex);
  *	0 = entire pattern
  *	1 = the first substring in parentheses, etc.
  */
-void parse_all(parser *p, char *text, size_t textlen, string_llist *destination, int *substring_indexes, int num_substrings);
+void parse_all(parser *p, char *text, size_t textlen, string_llist *destination, int *substring_indexes, size_t size);
 
 /*
  * Put the first instance of each substring into an array
  */
-int substrings_to_array(parser *p, char *text, size_t textlen, size_t offset, char **array, size_t size);
+int substrings_to_array(parser *p, char *text, size_t textlen, size_t offset, char **array);
 
 /*
  * Free memory associated with a parser
