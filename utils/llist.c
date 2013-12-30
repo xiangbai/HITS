@@ -2,11 +2,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-void llist_init(llist *list)
+void llist_init(llist *list, int (*equalsfunction)(void *a, void *b))
 {
 	// set pointers to null and size to 0
 	list->front = NULL;
 	list->back = NULL;
+	list->equalsfunction;
 	list->size = 0;
 }
 
@@ -98,7 +99,7 @@ void *llist_pop_back(llist *list)
 	return data;
 }
 
-int llist_find(llist *list, void *obj, int (*equalsfunction)(void *a, void *b))
+int llist_find(llist *list, void *obj)//, int (*equalsfunction)(void *a, void *b))
 {
 	// begin by assuming it is not found
 	int output = 0;
@@ -108,7 +109,8 @@ int llist_find(llist *list, void *obj, int (*equalsfunction)(void *a, void *b))
 	while (current)
 	{
 		// mark as found and break if lnode.data == obj
-		if ((*equalsfunction)(current->data, obj))
+		//if ((*equalsfunction)(current->data, obj))
+		if (list->equalsfunction(current->data, obj))
 		{
 			output = 1;
 			break;

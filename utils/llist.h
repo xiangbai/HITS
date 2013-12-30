@@ -17,6 +17,7 @@ typedef struct lnode {
 	void *data;
 	struct lnode *next;
 	struct lnode *prev;
+	int (*equalsfunction)(void *a, void *b);
 } lnode;
 
 // struct for the linked list
@@ -30,7 +31,7 @@ typedef struct llist {
  * Initialize a linked list.
  * Sets front and back pointers to null and size to 0.
  */
-void llist_init(llist *list);
+void llist_init(llist *list, int (*equalsfunction)(void *a, void *b));
 
 /*
  * Push data to the front of the linked list
@@ -52,12 +53,14 @@ void *llist_pop_front(llist *list);
  */
 void *llist_pop_back(llist *list);
 
+void *llist_find(llist *list, void *obj);
+
 /*
  * Find an element in the list.
  * Returns 1 if element is found; else 0.
  * A equals function must be provided to identify when a match is found.
  * The equals function must return 1 if two objects are equal; else 0.
  */
-int llist_find(llist *list, void *obj, int (*equalsfunction)(void *a, void *b));
+//int llist_find(llist *list, void *obj, int (*equalsfunction)(void *a, void *b));
 
 #endif

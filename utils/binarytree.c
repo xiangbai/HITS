@@ -21,13 +21,14 @@ void *killtreenode(treenode *node)
 	return output;
 }
 
-void btree_init(btree *tree)
+void btree_init(btree *tree, int (*comparefunction)(void *a, void *b))
 {
 	tree->root = NULL;
 	tree->numElems = 0;
+	tree->comparefunction = comparefunction;
 }
 
-void btree_insert(btree *tree, void *data, int (*comparefunction)(void *a, void *b))
+void btree_insert(btree *tree, void *data)//, int (*comparefunction)(void *a, void *b))
 {
 	treenode *node = maketreenode(data);
 	treenode *current = tree->root;
@@ -40,7 +41,7 @@ void btree_insert(btree *tree, void *data, int (*comparefunction)(void *a, void 
 		while (1)
 		{
 			prev = current;
-			int compare = comparefunction(data, current->data);
+			int compare = tree->comparefunction(data, current->data);
 			if (compare < 0)
 			{	// go left if data < current->data
 				wentleft = 1;
@@ -84,7 +85,7 @@ void btree_insert(btree *tree, void *data, int (*comparefunction)(void *a, void 
 	tree->numElems++;
 }
 
-void *btree_remove(btree *tree, void *data, int (*comparefunction)(void *a, void *b))
+void *btree_remove(btree *tree, void *data)//, int (*comparefunction)(void *a, void *b))
 {
 	void *output = NULL;
 	
@@ -97,7 +98,7 @@ void *btree_remove(btree *tree, void *data, int (*comparefunction)(void *a, void
 		// find node to remove and its parent
 		while (1)
 		{
-			int compare = comparefunction(data, current->data);
+			int compare = tree->comparefunction(data, current->data);
 			if (!compare)
 				break;	// found it
 			else 
@@ -223,7 +224,7 @@ void *btree_remove(btree *tree, void *data, int (*comparefunction)(void *a, void
 	return output;
 }
 
-void *btree_find(btree *tree, void *data, int(*comparefunction)(void *a, void *b))
+void *btree_find(btree *tree, void *data)//, int(*comparefunction)(void *a, void *b))
 {
 	treenode *current = tree->root;
 	treenode *node = NULL;
@@ -232,7 +233,7 @@ void *btree_find(btree *tree, void *data, int(*comparefunction)(void *a, void *b
 	if (tree->root)	
 		while (1)
 		{
-			int compare = comparefunction(data, current->data);
+			int compare = tree->comparefunction(data, current->data);
 			if (!compare)
 			{	// found
 				node = current;
