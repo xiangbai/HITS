@@ -1,13 +1,22 @@
 /* place any large or controversial changes here*/
 
-11/30:	removed double/multi buffer
-	  - it will be more clear to load all of a site's code and parse from there.
-	replaced string_queue w/ utils/string_linked_list
+11/30/2013:	removed double/multi buffer
+	  	- it will be more clear to load all of a site's code and parse from there.
+		replaced string_queue w/ utils/string_linked_list
 
-12/05:	added typedef back to urlinfo
-	  - code I just merged depended upon it
-	  - We can change it back if that would be better, though.
+12/05/2013:	added typedef back to urlinfo
+	  	- code I just merged depended upon it
+	  	- We can change it back if that would be better, though.
 
-12-06:	added utils/parser.[ch]
-	crawler_control currently just grabs the whole <a> tag
-	needs to be updated to pull just the link
+12/06/2013:	added utils/parser.[ch]
+		crawler_control currently just grabs the whole <a> tag
+		needs to be updated to pull just the link
+
+01/01/2013:	merged in branch url_features
+		- crawler_control crawls until it runs out of links to check, it hits the max search depth, or it hits the max links to find.
+		- generic threaded binary tree and linked list added to utils
+		- domain info added to track urls by domain
+		- urlinfo now tracks searchdepth
+		
+		BUG: in crawler_control.c
+			occationsally, urls are added to linksfound(binary tree) when they are found multiple times. Likely a problem with either btree_find() or the urlinfo compare function.
