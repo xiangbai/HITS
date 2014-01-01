@@ -145,6 +145,8 @@ urlinfo *makeURL(char *givenAddress, urlinfo *currentURL)
 		}
 	}
 
+	newurl->searchdepth = (currentURL)? currentURL->searchdepth + 1: 0;
+	
 	return newurl;	
 }
 
@@ -184,4 +186,15 @@ urlinfo *freeURL(urlinfo *url)
 	free(url);
 
 	return next;
+}
+
+int urlcompare(urlinfo *a, urlinfo *b)
+{
+	int compare = strcmp(a->host, b->host);
+	if (compare)
+		return compare;
+	compare = strcmp(a->path, b->path);
+	if (compare)
+		return compare;
+	return strcmp(a->filename, b->filename);	
 }

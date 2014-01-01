@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include "utils/domaininfo.h"
 #include "utils/string_linked_list.h"
 #include "utils/parser.h"
 #include "utils/general_utils.h"
@@ -9,6 +10,8 @@
 #include "utils/status_code_util.h"
 #include "utils/url_linked_list.h"
 #include "urlinfo.h"
+#include "utils/llist.h"
+#include "utils/binarytree.h"
 
 #define BUFFER_SIZE 1024
 
@@ -20,14 +23,17 @@ void getRequest(urlinfo *url, char *request);
 /* main routine for testing our crawler's funcitonality */
 int main(int argc, char **argv)
 {
-	char pattern[] = "<a [^>]*?href *?= *?[\'\"]([^\">]+)[\'\"].*?>";
+	//char pattern[] = "<a [^>]*?href *?= *?[\'\"]([^\">]+)[\'\"].*?>";
+	char pattern[] = "<a [^>]*?href *= *[\'\"]([^\"\'>]+)[\'\"].*?>";
 	parser *regexparser;
 	int socket;
 	int port = 80;
 	char request[BUFFER_SIZE + 100];
-	struct url_llist linkstocheck;
-	struct url_llist allURLs;
-	string_llist hostsfound;
+	
+	url_llist linkstocheck;		// queue of urls to check
+	btree domains;			// tree of domains, so we can limit how many pages per domain
+	btree linksfound;		// for quick finding so we don't add redunant urls to linkstocheck
+	
 	urlinfo *newURL = NULL;
 	urlinfo seedURL;
 	
@@ -39,35 +45,53 @@ int main(int argc, char **argv)
 
 	// initialize queues
 	url_llist_init(&linkstocheck);
-	url_llist_init(&allURLs);
-	string_llist_init(&hostsfound);
+	btree_init(&domains, (void *)&compare_domain_name);
+	btree_init(&linksfound, (void *)&urlcompare);
+	//url_llist_init(&allURLs);
+	//string_llist_init(&hostsfound);
 
 	//seed list
 	if (argc > 1)
 		seedURL.host = argv[1];
 	else
-		seedURL.host = "reddit.com";
+		seedURL.host = "google.com";
 	seedURL.path = "";
 	seedURL.filename = "";
-
-	int sitestocheck = (argc > 2)? atoi(argv[2]): 3;
-
+	seedURL.searchdepth = 0;
+	
 	url_llist_push_back(&linkstocheck, &seedURL);
-	string_llist_push_back(&hostsfound, seedURL.host);
+	//btree_insert(&domains, &seedURL);
+	btree_insert(&domains, domaininfo_init(seedURL.host));
+	//string_llist_push_back(&hostsfound, seedURL.host);
 	//url_llist_push_back(&allURLs, &seedURL);
 	
-	int i;
-	for(i = 0; i < sitestocheck; i++)
+	int maxperdomain = 8;
+	int maxlinks = (argc > 2)? atoi(argv[2]): 6;
+	int searchdepth = (argc > 3)? atoi(argv[3]): 1;
+
+	int linkcount = 1;
+	while (1)
 	{
+		// break if have max number of links
+		if (linkcount > maxlinks)
+			break;
+		
+		// break if no more links in queue
 		if (!linkstocheck.size)
 			break;
-			
 		
 		// convert port# to string
 		sprintf(port_string, "%d", port);
 		
 		newURL = url_llist_pop_front(&linkstocheck);
 		
+		printf("link #%d: depth=%d\n", linkcount, newURL->searchdepth);
+		
+		// break if search depth is too high
+		if (newURL->searchdepth > searchdepth)
+			break;
+		printf("depth: %d\n", newURL->searchdepth);
+			
 		getRequest(newURL, request);
 		//printf("[request to %s] \n%s", newURL->host, request);
 		
@@ -85,29 +109,49 @@ int main(int argc, char **argv)
 			
 			if (statuscode >= 200 && statuscode < 300)
 			{
+				// success
+				linkcount++;
+				
 				// create linked list to hold hyperlinks from code
 				string_llist *links_in_code = malloc(sizeof(string_llist));
 				string_llist_init(links_in_code);
 				int substrings[] = {1};
 				get_links(code, regexparser, links_in_code, substrings, 1);
-				
 				// load urls
 				printf("links: ");
 				char urlstring[BUFFER_SIZE];
 				while (links_in_code->size)
 				{
 					string_llist_pop_front(links_in_code, urlstring);
-					
 					urlinfo *urlfromstring = makeURL(urlstring, newURL);
+				
+					// do not add duplicates
+					if (btree_find(&linksfound, urlfromstring))
+						continue;
+					btree_insert(&linksfound, urlfromstring);
 					
-					int stringindex = string_llist_find(&hostsfound, urlfromstring->host);
-					if (stringindex < 0)
+					//int stringindex = string_llist_find(&hostsfound, urlfromstring->host);
+					domaininfo *newdomain = domaininfo_init(urlfromstring->host);
+					domaininfo *domain = btree_find(&domains, newdomain);
+					
+					if (domain)
+					{
+						if (domain->numpages < maxperdomain)
+						{
+							domaininfo_pushurl(domain, urlfromstring);
+							url_llist_push_back(&linkstocheck, urlfromstring);
+						}
+						freedomain(newdomain);
+					}
+					else
 					{
 						url_llist_push_back(&linkstocheck, urlfromstring);
-						url_llist_push_back(&allURLs, urlfromstring);
-						string_llist_push_back(&hostsfound, urlfromstring->host);
-						printf("x");
+						domaininfo_pushurl(newdomain, urlfromstring);
+						btree_insert(&domains, newdomain);
 					}
+					//url_llist_push_back(&allURLs, urlfromstring);
+					//string_llist_push_back(&hostsfound, urlfromstring->host);
+					printf("x");
 				}
 				printf("\n");
 			}
@@ -121,9 +165,7 @@ int main(int argc, char **argv)
 		int closed = close(socket);
 		if (closed)
 			puts("error closing socket..");
-		//else
-		//	puts("closed socket");
-				
+		
 		// pause for user input
 		fputs("hit enter to continue..", stdout);
 		char input[] = "";
@@ -131,18 +173,21 @@ int main(int argc, char **argv)
 		printf("-----------------------------\n");
 	}
 
-	printf("\n%d URLs\n---------\n", allURLs.size);
+	printf("\n%d URLs--\n---------\n", linksfound.numElems);
 	char *urlstring;
-	while (allURLs.size)
+	int i = 0;
+	urlinfo **urlarray = (urlinfo **)btree_toarray(&linksfound);
+	for (i = 0; i < linksfound.numElems; i++)
 	{
-		newURL = url_llist_pop_front(&allURLs);
+		newURL = urlarray[i];//url_llist_pop_front(&allURLs);
 		urlstring = url_tostring(newURL);
 	
 		printf("%s\n", urlstring);
 			
 		free(urlstring);
 		freeURL(newURL);
-	}	
+	}
+	free(urlarray);
 
 	return 0;
 }

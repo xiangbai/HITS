@@ -15,6 +15,7 @@ typedef struct urlinfo
 	char *host;
 	char *path;
 	char *filename;
+	int searchdepth;
 	struct urlinfo *next;
 } urlinfo;
 
@@ -35,5 +36,6 @@ char *url_tostring(urlinfo *url);
  */
 urlinfo *freeURL(urlinfo *url);
 
+int urlcompare(urlinfo *a, urlinfo *b);
 
 #endif

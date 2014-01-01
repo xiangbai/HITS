@@ -7,7 +7,7 @@ void llist_init(llist *list, int (*equalsfunction)(void *a, void *b))
 	// set pointers to null and size to 0
 	list->front = NULL;
 	list->back = NULL;
-	list->equalsfunction;
+	list->equalsfunction = equalsfunction;
 	list->size = 0;
 }
 
@@ -99,10 +99,10 @@ void *llist_pop_back(llist *list)
 	return data;
 }
 
-int llist_find(llist *list, void *obj)//, int (*equalsfunction)(void *a, void *b))
+void *llist_find(llist *list, void *obj)//, int (*equalsfunction)(void *a, void *b))
 {
 	// begin by assuming it is not found
-	int output = 0;
+	void *output = NULL;
 
 	// iterate through list
 	lnode *current = list->front;
@@ -112,7 +112,7 @@ int llist_find(llist *list, void *obj)//, int (*equalsfunction)(void *a, void *b
 		//if ((*equalsfunction)(current->data, obj))
 		if (list->equalsfunction(current->data, obj))
 		{
-			output = 1;
+			output = current->data;
 			break;
 		}
 		current = current->next;

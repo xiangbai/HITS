@@ -17,7 +17,6 @@ typedef struct lnode {
 	void *data;
 	struct lnode *next;
 	struct lnode *prev;
-	int (*equalsfunction)(void *a, void *b);
 } lnode;
 
 // struct for the linked list
@@ -25,6 +24,7 @@ typedef struct llist {
 	struct lnode *front;
 	struct lnode *back;
 	size_t size;
+	int (*equalsfunction)(void *a, void *b);
 } llist;
 
 /*

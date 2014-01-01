@@ -65,7 +65,7 @@ void btree_insert(btree *tree, void *data)//, int (*comparefunction)(void *a, vo
 			node->right = prev;
 			prev->left = node;
 			prev->leftthread = 0;
-			if (current && current->rightthread)
+			if (current && current->right == prev)
 				current->right = node;
 		}
 		else
@@ -74,7 +74,7 @@ void btree_insert(btree *tree, void *data)//, int (*comparefunction)(void *a, vo
 			node->left = prev;
 			prev->right = node;
 			prev->rightthread = 0;
-			if (current && current->leftthread)
+			if (current && current->left == prev)
 				current->left = node;
 		}
 	}
@@ -228,7 +228,6 @@ void *btree_find(btree *tree, void *data)//, int(*comparefunction)(void *a, void
 {
 	treenode *current = tree->root;
 	treenode *node = NULL;
-	
 	// traverse tree until data is found
 	if (tree->root)	
 		while (1)
@@ -258,7 +257,6 @@ void *btree_find(btree *tree, void *data)//, int(*comparefunction)(void *a, void
 				current = current->right;
 			}
 		}
-	
 	if (current)
 		return current->data;
 	
@@ -273,9 +271,9 @@ void **btree_toarray(btree *tree)
 	treenode *node = tree->root;
 
 	// get the left-most node
-	while (!node->leftthread)
+	while (node->left)
 		node = node->left;
-		
+	
 	// add all elements to the array
 	size_t i;
 	for (i = 0; i < size; i++)
