@@ -53,6 +53,11 @@ int string_llist_pop_front(string_llist *list, char *destination);
 int string_llist_pop_back(string_llist *list, char *destination);
 
 /*
+ * Delete any node from the linked list
+ */
+void string_llist_delete_node(string_llist *list, string_node **del_node);
+
+/*
  * Print the linked list from front to back
  * Prints to stdout, one element per line.
  */

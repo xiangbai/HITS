@@ -109,6 +109,38 @@ int string_llist_pop_back(string_llist *list, char *destination)
 	return -1;
 }
 
+void string_llist_delete_node(string_llist *list, string_node **del_node)
+{
+    string_node *node = *del_node;
+    if (node != NULL)
+    {
+        if (node->prev == NULL && node->next == NULL) //1 item in list
+        {
+            list->front = NULL;
+            list->back = NULL;
+        }
+        else if (node->prev == NULL) //if first item in list
+        {
+            list->front = node->next;
+            node->next->prev = NULL;
+        }
+        else if (node->next == NULL) //if last item in list
+        {
+            list->back = node->prev;
+            node->prev->next = NULL;
+        }
+        else    //in middle of list
+        {
+            node->prev->next = node->next;
+            node->next->prev = node->prev;
+        }
+        list->num_chars -= strlen(node->string);
+        list->size--;
+        free(node->string);
+        free(node);
+    }
+}
+
 void string_llist_printforward(string_llist *list)
 {
 	printf("printing %d strings:\n", list->size);
