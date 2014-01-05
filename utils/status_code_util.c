@@ -18,11 +18,11 @@ int get_status_code(char *code)
 	// create array for substrings and clear it
 	char *substrings[STATUS_CODE_SUBSTRINGS];
 	
-	substrings_to_array(status_code_regex, code, strlen(code), 0, substrings, STATUS_CODE_SUBSTRINGS);
+	substrings_to_array(status_code_regex, code, strlen(code), 0, substrings);
 
 	int statuscode = atoi(substrings[STATUS_CODE_NUMBER]);
 	
-	printf("Response: ", stdout);
+	printf("Response: ");
 	printf(substrings[STATUS_CODE_FULL], stdout);
 	putc('\n', stdout);
 	
