@@ -30,6 +30,11 @@ void parse_all(parser *p, char *text, size_t textlen, string_llist *destination,
 int substrings_to_array(parser *p, char *text, size_t textlen, size_t offset, char **array);
 
 /*
+ * cleans jargon links from search engine results page
+ */
+void clean_search_results(string_llist *list);
+
+/*
  * Free memory associated with a parser
  */
 void kill_parser(parser *p);

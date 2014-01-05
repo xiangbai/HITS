@@ -36,6 +36,7 @@ parser *init_parser(char *regex)
 
 	// study regexp so pcre_exec can be optimized
 	p->study = pcre_study(p->re, 0, &error);
+
 	return p;
 }
 
@@ -50,9 +51,9 @@ void parse_all(parser *p, char *text, size_t textlen, string_llist *destination,
 	while (1)
 	{
 		// find matches for re with text, optimized w/ study
-		int retval = pcre_exec(p->re, NULL,//p->study, 
-			text, textlen, offset, 0, 
-			vector, p->vectorsize);
+		int retval = pcre_exec(p->re, NULL,//p->study,
+                               text, textlen, offset, 0,
+                               vector, p->vectorsize);
 		// if no matches found, break
 		if (retval < 0)
 			break;
@@ -121,8 +122,35 @@ int substrings_to_array(parser *p, char *text, size_t textlen, size_t offset, ch
 			
 		// add to array
 		array[i] = newstring;
+
 	}
 	return 0;
+}
+
+void clean_search_results(string_llist *list)
+{
+    char pattern[] = "((^(.(?!http))*$)|(<a onclick|<a class|google.com))";
+    parser *jargonParser = init_parser(pattern);
+    
+    //int vector[jargonParser->vectorsize];
+	int vector[jargonParser->vectorsize];
+    int offset = 0;
+	
+	string_node **node = &list->front;
+    while(*node != NULL)
+	{
+        string_node *current = *node;
+		// find matches for re with text, optimized w/ study
+		int retval = pcre_exec(jargonParser->re, NULL,//p->study,
+                               current->string, strlen(current->string), offset, 0,
+                               vector, jargonParser->vectorsize);
+		
+		node = &current->next;
+        
+        // if match found, delete from list
+		if (retval > 0)
+            string_llist_delete_node(list, &current);
+	}
 }
 
 void kill_parser(parser *p)
