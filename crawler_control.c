@@ -30,21 +30,16 @@ int get_links(char *code, parser *p, string_llist *list);
 void getRequest(urlinfo *url, char *request);
 void getUserSearchQuery(char *path);
 void incrementResultsRequest(char *path, char *clone, int start, int numResults);
-string_llist *get_base_graph(char *request, char *port_string, parser *regexparser);
+string_llist *get_base_graph(char *request, char *port_string, parser *regexparser, urlinfo *searchURL);
 
 /* main routine for testing our crawler's funcitonality */
 int main(void)
 {
     char pattern[] = "<a [^>]*?href *?= *?[\'\"]([^\">]+)[\'\"].*?>";
     parser *regexparser;
-    int socket;
     int port = 80;
     char request[PATH_LENGTH + 100]; //max path size + space for get request
-    char *pathclone;
-    struct url_queue linkstocheck;
-    struct url_queue allURLs;
-    struct urlinfo *newURL;
-    struct urlinfo seedURL;
+    struct urlinfo searchURL;
     
     char port_string[3];
     sprintf(port_string, "%d", port);
@@ -52,64 +47,14 @@ int main(void)
     // initialize parser
     regexparser = init_parser(pattern);
     
-    // initialize queues
-    linkstocheck.size = 0;
-    allURLs.size = 0;
-    
     //search engine seed
-    seedURL.host = "www.google.com";
-    getUserSearchQuery(seedURL.path);
+    searchURL.host = "www.google.com";
     
-    // to hold search query minus the "start=num" part for easy reload and update
-    pathclone = malloc(strlen(seedURL.path)+1);
-    strcpy(pathclone, seedURL.path);
-    
-    // create linked list to hold hyperlinks from code
-    string_llist *links_in_code = malloc(sizeof(string_llist));
-    string_llist_init(links_in_code);
-    
-    int resultsPerPage = 100;
-    int i;
-    for(i = 0; i < 1000; i += resultsPerPage)
-    {
-        incrementResultsRequest(seedURL.path, pathclone, i, resultsPerPage);
-        
-        getRequest(&seedURL, request);
-        
-        socket = connect_socket(seedURL.host, port_string, stdout);
-        if (socket >= 0)
-        {
-            // send http requrest
-            fputs("sending http request: ", stdout);
-            fputs(request, stdout);
-            
-            //wait for some time so google don't block us!
-            sleep( (rand() % 7) + 2);
-            send(socket, request, strlen(request), 0);
-            
-            // get code
-            char *code = loadPage(socket);
-            
-            //following line for testing
-            fputs(code, stdout);
-            
-            get_links(code, regexparser, links_in_code);
-            
-            //following lines for testing purposes
-            //clean_search_results(links_in_code);
-            //printf("print cleaned results form search %d to %d, ",i, i+resultsPerPage-1);
-            //string_llist_printforward(links_in_code);
-        }
-        else
-            report_error("socket_connect() failed");
-        
-        // close the socket
-        close(socket);
-    }
-    clean_search_results(links_in_code);
-    fputs("print all cleaned", stdout);
-    string_llist_printforward(links_in_code);
-    print_queue(&allURLs);
+    string_llist *links_in_search;
+    links_in_search = get_base_graph(request, port_string, regexparser, &searchURL);
+   
+    fputs("print all cleaned: ", stdout);
+    string_llist_printforward(links_in_search);
     
     return 0;
 }
@@ -119,22 +64,23 @@ int main(void)
  * Asks the user for a search query and then performs a goole search
  * with results 0-99 shown. The valid urls are scraped from this page 
  * and the search is performed with the same query but with results 100-199
- * shown. This is continued trhough 1000 search results. Currently parsing
- * approximately 800-1040 links when all is said in done.  
+ * shown. This is continued trhough 1000 search results. It appears that
+ * google still catches on some times and blocks subsequent searches.
+ *
+ * UPDATE: I was getting around 1000 links but now I'm getting 600ish alot? So 
+ * I'm trying it with trying to pull 500 results now I'm getting about 500.
  * Bad links are removed: adds, dropdown menus, etc.
  */
-string_llist *get_base_graph(char *request, char *port_string, parser *regexparser)
+string_llist *get_base_graph(char *request, char *port_string,
+                             parser *regexparser, urlinfo *searchURL)
 {
-    struct urlinfo seedURL;
     char *pathclone;
-    
-    //search engine seed
-    seedURL.host = "www.google.com";
-    getUserSearchQuery(seedURL.path);
+   
+    getUserSearchQuery(searchURL->path);
     
     // to hold search query minus the "start=num" part for easy reload and update
-    pathclone = malloc(strlen(seedURL.path)+1);
-    strcpy(pathclone, seedURL.path);
+    pathclone = malloc(strlen(searchURL->path)+1);
+    strcpy(pathclone, searchURL->path);
     
     // create linked list to hold hyperlinks from code
     string_llist *links_in_code = malloc(sizeof(string_llist));
@@ -144,21 +90,21 @@ string_llist *get_base_graph(char *request, char *port_string, parser *regexpars
     
     int resultsPerPage = 100;
     int i;
-    for(i = 0; i < 1000; i += resultsPerPage)
+    for(i = 0; i < 500; i += resultsPerPage)
     {
-        incrementResultsRequest(seedURL.path, pathclone, i, resultsPerPage);
+        incrementResultsRequest(searchURL->path, pathclone, i, resultsPerPage);
         
-        getRequest(&seedURL, request);
+        getRequest(searchURL, request);
         
-        socket = connect_socket(seedURL.host, port_string, stdout);
+        socket = connect_socket(searchURL->host, port_string, stdout);
         if (socket >= 0)
         {
             // send http requrest
-            fputs("sending http request: ", stdout);
+            fputs("\nsending http request: \n", stdout);
             fputs(request, stdout);
             
             //optional: wait for some time so google don't block us!
-            //sleep( (rand() % 45) + 7);
+            //sleep( (rand() % 45) + 7); // in seconds
             send(socket, request, strlen(request), 0);
             
             // get code
@@ -180,16 +126,20 @@ string_llist *get_base_graph(char *request, char *port_string, parser *regexpars
         // close the socket
         close(socket);
     }
+    free(pathclone);
+    clean_search_results(links_in_code);
+    
     //test output internally
-    //clean_search_results(links_in_code);
     //fputs("print all cleaned", stdout);
-   // string_llist_printforward(links_in_code);
+    // string_llist_printforward(links_in_code);
     return links_in_code;
 }
 
 /*
- * Generates a standard get request from the path using the url->path and puts in *request.
- * Random chooses a user agent which helps query search engines without getting blocked.
+ * Generates a standard get request from the path 
+ * using the url->path and puts in *request.
+ * Random chooses a user agent which helps query 
+ * search engines without getting blocked.
  */
 void getRequest(urlinfo *url, char *request)
 {
@@ -204,8 +154,8 @@ void getRequest(urlinfo *url, char *request)
 }
 
 /*
- * Updates the "num=desiredResults" and "start=desiredStart" portion of the search request.
- * Appends update to *path.
+ * Updates the "num=desiredResults" and "start=desiredStart" 
+ * portion of the search request. Appends update to *path.
  */
 void incrementResultsRequest(char *path, char *clone, int start, int numResults)
 {
@@ -221,11 +171,13 @@ void incrementResultsRequest(char *path, char *clone, int start, int numResults)
     strcat(path, "&num=");
     strcat(path, numResultsString);
     
-    fputs(path, stdout);
+    // for testing
+    // fputs(path, stdout);
 }
 
 /*
- * Prompts user for a search query and sets *path to "/search?q=query1+query2+..."
+ * Prompts user for a search query and sets 
+ * path to "/search?q=query1+query2+..."
  */
 void getUserSearchQuery(char *path)
 {
@@ -259,7 +211,8 @@ void getUserSearchQuery(char *path)
 }
 
 /*
- * Parses valid hyperlinks from char *code using parser *p, and puts in *list
+ * Parses valid hyperlinks from char *code 
+ * using parser *p, and puts in *list
  */
 int get_links(char *code, parser *p, string_llist *list)
 {
