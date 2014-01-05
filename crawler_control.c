@@ -383,8 +383,8 @@ string_llist *get_base_graph(char *request, char *port_string,
             
             //following line for testing
             //fputs(code, stdout);
-            
-            get_links(code, regexparser, links_in_code, {1}, 1);
+			int substrings[1] = {1};            
+            get_links(code, regexparser, links_in_code, substrings, 1);
             
             //following lines for testing purposes
             //clean_search_results(links_in_code);
