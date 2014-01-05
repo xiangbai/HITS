@@ -60,14 +60,68 @@ int main(void)
 }
 
 /*
+ * Parses valid hyperlinks from char *code 
+ * using parser *p, and puts in *list
+ */
+int get_links(char *code, parser *p, string_llist *list)
+{
+    fputs("parsing links..\n\n", stdout);
+    // get list of links using regex
+    int codelen = strlen(code);
+    parse_all(p, code, codelen, list);
+    
+    return 0;
+}
+
+/*
+ * Load the code from a webpage.
+ * Assumes http request has already been sent
+ * Allocates memory; free it when you are done
+ */
+char *loadPage(int socket)
+{
+    fputs("loading code..\n", stdout);
+    // declare variables
+    char buffer[BUFFER_SIZE];
+    int bytes_received = 0;
+    string_llist list;
+    
+    // clear list
+    string_llist_init(&list);
+    
+    // read data and push to linked list, avoiding the need to know code length beforehand
+    do
+    {
+        memset(buffer, 0, sizeof(buffer));
+        bytes_received = read(socket, buffer, BUFFER_SIZE - 1);
+        buffer[BUFFER_SIZE - 1] = '\0';
+        string_llist_push_back(&list, buffer);
+    } while (bytes_received);
+    
+    // allocate enough space to store code in linked list (and null char)
+    char *code = (char *) malloc((list.num_chars + 1) * sizeof(char));
+    
+    // load code from linked list to string
+    size_t current_index = 0;
+    while (list.size)
+    {
+        string_llist_pop_front(&list, buffer);
+        strcpy(code + current_index, buffer);
+        current_index += strlen(buffer);
+    }
+    
+    return code;
+}
+
+/*
  * Builds the starting graph of urls from repeatedly searching google.
  * Asks the user for a search query and then performs a goole search
- * with results 0-99 shown. The valid urls are scraped from this page 
+ * with results 0-99 shown. The valid urls are scraped from this page
  * and the search is performed with the same query but with results 100-199
  * shown. This is continued trhough 1000 search results. It appears that
  * google still catches on some times and blocks subsequent searches.
  *
- * UPDATE: I was getting around 1000 links but now I'm getting 600ish alot? So 
+ * UPDATE: I was getting around 1000 links but now I'm getting 600ish alot? So
  * I'm trying it with trying to pull 500 results now I'm getting about 500.
  * Bad links are removed: adds, dropdown menus, etc.
  */
@@ -75,7 +129,7 @@ string_llist *get_base_graph(char *request, char *port_string,
                              parser *regexparser, urlinfo *searchURL)
 {
     char *pathclone;
-   
+    
     getUserSearchQuery(searchURL->path);
     
     // to hold search query minus the "start=num" part for easy reload and update
@@ -136,9 +190,9 @@ string_llist *get_base_graph(char *request, char *port_string,
 }
 
 /*
- * Generates a standard get request from the path 
+ * Generates a standard get request from the path
  * using the url->path and puts in *request.
- * Random chooses a user agent which helps query 
+ * Random chooses a user agent which helps query
  * search engines without getting blocked.
  */
 void getRequest(urlinfo *url, char *request)
@@ -154,7 +208,7 @@ void getRequest(urlinfo *url, char *request)
 }
 
 /*
- * Updates the "num=desiredResults" and "start=desiredStart" 
+ * Updates the "num=desiredResults" and "start=desiredStart"
  * portion of the search request. Appends update to *path.
  */
 void incrementResultsRequest(char *path, char *clone, int start, int numResults)
@@ -176,7 +230,7 @@ void incrementResultsRequest(char *path, char *clone, int start, int numResults)
 }
 
 /*
- * Prompts user for a search query and sets 
+ * Prompts user for a search query and sets
  * path to "/search?q=query1+query2+..."
  */
 void getUserSearchQuery(char *path)
@@ -208,58 +262,4 @@ void getUserSearchQuery(char *path)
     }
     else
         report_error("getUserSearchQuery failed");
-}
-
-/*
- * Parses valid hyperlinks from char *code 
- * using parser *p, and puts in *list
- */
-int get_links(char *code, parser *p, string_llist *list)
-{
-    fputs("parsing links..\n\n", stdout);
-    // get list of links using regex
-    int codelen = strlen(code);
-    parse_all(p, code, codelen, list);
-    
-    return 0;
-}
-
-/*
- * Load the code from a webpage.
- * Assumes http request has already been sent
- * Allocates memory; free it when you are done
- */
-char *loadPage(int socket)
-{
-    fputs("loading code..\n", stdout);
-    // declare variables
-    char buffer[BUFFER_SIZE];
-    int bytes_received = 0;
-    string_llist list;
-    
-    // clear list
-    string_llist_init(&list);
-    
-    // read data and push to linked list, avoiding the need to know code length beforehand
-    do
-    {
-        memset(buffer, 0, sizeof(buffer));
-        bytes_received = read(socket, buffer, BUFFER_SIZE - 1);
-        buffer[BUFFER_SIZE - 1] = '\0';
-        string_llist_push_back(&list, buffer);
-    } while (bytes_received);
-    
-    // allocate enough space to store code in linked list (and null char)
-    char *code = (char *) malloc((list.num_chars + 1) * sizeof(char));
-    
-    // load code from linked list to string
-    size_t current_index = 0;
-    while (list.size)
-    {
-        string_llist_pop_front(&list, buffer);
-        strcpy(code + current_index, buffer);
-        current_index += strlen(buffer);
-    }
-    
-    return code;
 }
