@@ -175,6 +175,32 @@ char *url_tostring(urlinfo *url)
 	}
 
 	return string;
+     /*
+    size_t hostlen = strlen(url->host);
+	size_t pathlen = strlen(url->path);
+	size_t filelen = strlen(url->filename);
+	int haspath = (pathlen)? 1: 7;
+	int hasfile = (filelen)? 1: 7;
+	char *string = (char *)malloc(hostlen + pathlen + filelen + 1 + haspath + hasfile + 20);
+	
+	// domain
+    strcpy(string, "HOST: ");
+	strcat(string, url->host);
+	
+	// path and file
+	if (haspath)
+	{
+		strcat(string, " PATH: ");
+		strcat(string, url->path);
+	}
+	if (hasfile)
+	{
+		strcat(string, " FILE: ");
+		strcat(string, url->filename);
+	}
+    
+	return string;
+     */
 }
 
 urlinfo *freeURL(urlinfo *url)

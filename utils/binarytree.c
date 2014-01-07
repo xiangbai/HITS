@@ -227,15 +227,16 @@ void *btree_remove(btree *tree, void *data)//, int (*comparefunction)(void *a, v
 void *btree_find(btree *tree, void *data)//, int(*comparefunction)(void *a, void *b))
 {
 	treenode *current = tree->root;
-	treenode *node = NULL;
 	// traverse tree until data is found
 	if (tree->root)	
 		while (1)
 		{
 			int compare = tree->comparefunction(data, current->data);
+            
+            //printf("compare value in btree_find: %d, ", compare);
+            
 			if (!compare)
 			{	// found
-				node = current;
 				break;
 			}
 			else if (compare < 0)
@@ -279,7 +280,15 @@ void **btree_toarray(btree *tree)
 	for (i = 0; i < size; i++)
 	{
 		array[i] = node->data;
-		node = node->right;
+		
+        if (node->rightthread)
+            node = node->right;
+        else
+        {
+            node = node->right;
+            while(!node->leftthread)
+                node = node->left;
+        }
 	}
 	
 	// return the array

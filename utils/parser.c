@@ -129,7 +129,7 @@ int substrings_to_array(parser *p, char *text, size_t textlen, size_t offset, ch
 
 void clean_search_results(string_llist *list)
 {
-    char pattern[] = "((^(.(?!http))*$)|(<a onclick|<a class|google.com))";
+    char pattern[] = "((^(.(?!http))*$)|(<a onclick|<a class|google.com|facebook|youtube))";
     parser *jargonParser = init_parser(pattern);
     
     //int vector[jargonParser->vectorsize];
