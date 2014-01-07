@@ -70,16 +70,40 @@ int main(int argc, char **argv)
 	if (argc > 1)
 		seedURL.host = argv[1];
 	else
-		seedURL.host = "google.com";
-	seedURL.path = "";
+		seedURL.host = "www.google.com";
+    seedURL.path = (char *) malloc(100);
+	//seedURL.path = "";
 	seedURL.filename = "";
 	seedURL.searchdepth = 0;
 	
-	url_llist_push_back(&linkstocheck, &seedURL);
-	//btree_insert(&domains, &seedURL);
-	btree_insert(&domains, domaininfo_init(seedURL.host));
-	//string_llist_push_back(&hostsfound, seedURL.host);
-	//url_llist_push_back(&allURLs, &seedURL);
+    
+    string_llist *links_in_search;
+    links_in_search = get_base_graph(request, port_string, regexparser, &seedURL);
+    fputs("\n\n\n\n\n\n\n\n after cleaning", stdout);
+    string_llist_printforward(links_in_search);
+    free(seedURL.path);
+    
+    int count = 0;
+    string_node *temp = links_in_search->front;
+    fputs("printing urls\n\n\n\n",stdout);
+    while(temp != NULL)
+    {
+        urlinfo *urlfromstring = makeURL(temp->string, &seedURL);
+        fputs(url_tostring(urlfromstring), stdout);
+        fputs("\n",stdout);
+        temp = temp->next;
+        count++;
+        url_llist_push_back(&linkstocheck, urlfromstring);
+        btree_insert(&domains, domaininfo_init(urlfromstring->host));
+    }
+    printf("%d urls printed", count);
+    
+     
+	//url_llist_push_back(&linkstocheck, &seedURL);
+	////btree_insert(&domains, &seedURL);
+	//btree_insert(&domains, domaininfo_init(seedURL.host));
+	////string_llist_push_back(&hostsfound, seedURL.host);
+	////url_llist_push_back(&allURLs, &seedURL);
 	
 	int maxperdomain = 8;
 	int maxlinks = (argc > 2)? atoi(argv[2]): 6;
@@ -235,6 +259,7 @@ int main(int argc, char **argv)
  }
  */
 
+
 void getRequest(urlinfo *url, char *request)
 {
 	strcpy(request, "GET /");
@@ -259,14 +284,15 @@ void getRequest(urlinfo *url, char *request)
 	strcat(request, "\n");
 }
 
+
+
 /*  GETREQUEST FROM SEARCHQUERY BRANCH
  * Generates a standard get request from the path
  * using the url->path and puts in *request.
  * Random chooses a user agent which helps query
  * search engines without getting blocked.
  */
-/*
-void getRequest(urlinfo *url, char *request)
+void sendSearchRequest(urlinfo *url, char *request)
 {
     strcpy(request, "GET ");
     strcat(request, url->path);
@@ -277,7 +303,7 @@ void getRequest(urlinfo *url, char *request)
     strcat(request, userAgents[rand() % 9]);
     strcat(request, "\n\n");
 }
-*/
+
 
 int get_links(char *code, parser *p, string_llist *list, int *substrings, int num_substrings)
 {
@@ -361,11 +387,11 @@ string_llist *get_base_graph(char *request, char *port_string,
     
     int resultsPerPage = 100;
     int i;
-    for(i = 0; i < 500; i += resultsPerPage)
+    for(i = 0; i < 100; i += resultsPerPage)
     {
         incrementResultsRequest(searchURL->path, pathclone, i, resultsPerPage);
         
-        getRequest(searchURL, request);
+        sendSearchRequest(searchURL, request);
         
         socket = connect_socket(searchURL->host, port_string, stdout);
         if (socket >= 0)
@@ -382,9 +408,12 @@ string_llist *get_base_graph(char *request, char *port_string,
             char *code = loadPage(socket);
             
             //following line for testing
-            //fputs(code, stdout);
-			int substrings[1] = {1};            
+            fputs(code, stdout);
+			int substrings[1] = {0};
             get_links(code, regexparser, links_in_code, substrings, 1);
+        
+            fputs("\nbefore cleaning\n\n\n\n\n\n\n\n\n", stdout);
+            string_llist_printforward(links_in_code);
             
             //following lines for testing purposes
             //clean_search_results(links_in_code);
@@ -443,6 +472,7 @@ void getUserSearchQuery(char *path)
     if (fgetline(templine, (int)sizeof(templine)-1) > 0) //read a line
     {
         token = strtok(templine, delims);
+        
         strcpy(path, "/search?q=");
         
         if (token != NULL)
