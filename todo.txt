@@ -4,5 +4,5 @@
 [x] only grab part of a parsed link
 [x] parse links to find if they are relative or absolute
 
-[ ] fix linksfound in crawler_control so duplicates aren't added
+[x] fix linksfound in crawler_control so duplicates aren't added
 [ ] add structure to hold HITS ranking for urls (or add to urlinfo)

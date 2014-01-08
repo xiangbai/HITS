@@ -12,6 +12,31 @@ void string_llist_init(string_llist *list)
 	list->num_chars = 0;
 }
 
+void string_llist_empty(string_llist *list)
+{
+	if (list->size)
+	{
+		string_node *current = list->front;
+		string_node *next;
+		while (current)
+		{
+			next = current->next;
+			free(current);
+			current = next;
+		}
+		list->front = NULL;
+		list->back = NULL;
+		list->size = 0;
+		list->num_chars = 0;
+	}
+}
+
+void string_llist_free(string_llist *list)
+{
+	string_llist_empty(list);
+	free(list);
+}
+
 void string_llist_push_front(string_llist *list, char *string)
 {
 	// create new node

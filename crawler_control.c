@@ -29,6 +29,7 @@ char *userAgents[9] =
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.9; rv:25.0) Gecko/20100101 Firefox/25.0",
     "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36"};
 
+void clean_search_results(string_llist *tags_and_urls, string_llist *destination);
 void getRequest(urlinfo *url, char *request);
 int get_links(char *code, parser *p, string_llist *list, int *substrings, int num_substrings);
 void formatSearchRequest(urlinfo *url, char *request);
@@ -71,7 +72,7 @@ int main(int argc, char **argv)
 		seedURL.host = argv[1];
 	else
 		seedURL.host = "www.google.com";
-    seedURL.path = (char *) malloc(100); //move to getSearchQuery
+	seedURL.path = (char *) malloc(100); //move to getSearchQuery
 	//seedURL.path = "";
 	seedURL.filename = "";
 	seedURL.searchdepth = 0;
@@ -79,11 +80,22 @@ int main(int argc, char **argv)
     
     string_llist *links_in_search;
     links_in_search = get_base_graph(request, port_string, regexparser, &seedURL);
-    //fputs("\n\n\n\n\n\n\n\n after cleaning", stdout);
+	
+	// convert links found for base graph into urlinfos to be checked 
+	char link_in_search[BUFFER_SIZE];
+	while (links_in_search->size)
+	{
+		string_llist_pop_front(links_in_search, link_in_search);
+		urlinfo *urlfromsearch = makeURL(link_in_search, &seedURL);
+		printf("making url: %s\n", url_tostring(urlfromsearch));
+		url_llist_push_back(&linkstocheck, urlfromsearch);
+	}
+
+	//fputs("\n\n\n\n\n\n\n\n after cleaning", stdout);
     //string_llist_printforward(links_in_search);
     
     
-    string_node *temp = links_in_search->front;
+    /*string_node *temp = links_in_search->front;
     char *tempcode = malloc(sizeof(char));
     strcpy(tempcode, "");
     fputs("\n\n\nprinting urls\n",stdout);
@@ -105,13 +117,14 @@ int main(int argc, char **argv)
         count++;
         url_llist_push_back(&linkstocheck, urlfromstring);
         btree_insert(&domains, domaininfo_init(urlfromstring->host));
-         */
+         \\/
         temp = temp->next;
     }
     //printf("%d urls printed", count);
     fputs(tempcode, stdout);
     
     fputs("links before reformat: \n%s", stdout);
+	
     string_llist_printforward(links_in_search);
     
     int sstrings[1] = {1};
@@ -129,7 +142,7 @@ int main(int argc, char **argv)
         url_llist_push_back(&linkstocheck, urlfromstring);
         btree_insert(&domains, domaininfo_init(urlfromstring->host));
         temp = temp->next;
-    }
+    }*/
     
 	//url_llist_push_back(&linkstocheck, &seedURL);
 	////btree_insert(&domains, &seedURL);
@@ -398,6 +411,10 @@ string_llist *get_base_graph(char *request, char *port_string,
     string_llist *links_in_code = malloc(sizeof(string_llist));
     string_llist_init(links_in_code);
     
+	// linked list to hold <a> tags and associated urls
+	string_llist *tags_and_urls = malloc(sizeof(string_llist));
+	string_llist_init(tags_and_urls);
+
     int socket;
     
     int resultsPerPage = 100;
@@ -425,8 +442,8 @@ string_llist *get_base_graph(char *request, char *port_string,
             
             //following line for testing
             fputs(code, stdout);
-			int substrings[1] = {0};
-            get_links(code, regexparser, links_in_code, substrings, 1);
+	    int substrings[] = {0, 1};
+            get_links(code, regexparser, tags_and_urls, substrings, 2);
         
             //fputs("\nbefore cleaning\n\n\n\n\n\n\n\n\n", stdout);
             //string_llist_printforward(links_in_code);
@@ -437,18 +454,48 @@ string_llist *get_base_graph(char *request, char *port_string,
             //string_llist_printforward(links_in_code);
         }
         else
-            report_error("socket_connect() failed");
+     	       report_error("socket_connect() failed");
         
-        // close the socket
-        close(socket);
-    }
-    free(pathclone);
-    clean_search_results(links_in_code);
+        	// close the socket
+		close(socket);
+	}
+	free(pathclone);
+	clean_search_results(tags_and_urls, links_in_code);
+	
+	// free tags_and_urls
+	string_llist_free(tags_and_urls);
+
+	return links_in_code;
+}
+
+/*
+ * Takes array consisting of <a> tags and urls(in alternating order)
+ * Picks out which urls are not google's garbage, and pushes the associated url to destination.
+ */
+void clean_search_results(string_llist *tags_and_urls, string_llist *destination)
+{
+	char pattern[] = "((^(.(?!http))*$)|(<a onclick|<a class|google.com|facebook|youtube))";
+	parser *jargonParser = init_parser(pattern);
     
-    //test output internally
-    //fputs("print all cleaned", stdout);
-    // string_llist_printforward(links_in_code);
-    return links_in_code;
+	int vector[jargonParser->vectorsize];
+	string_node *node = tags_and_urls->front;
+	while(node)
+	{
+		// find matches for re with text, optimized w/ study
+		int retval = pcre_exec(jargonParser->re, NULL,//p->study,
+                              node->string, strlen(node->string), 0, 0,
+                              vector, jargonParser->vectorsize);
+		
+        
+        	// if match not found, add to destination list
+		if (vector[0] < 0)
+		// push associate url, which comes after the current <a> tag
+			string_llist_push_back(destination, node->next->string);
+			//string_llist_delete_node(list, &current);
+		
+		// increment by 2 to get to the next <a> tag
+		node = node->next->next;
+	}
 }
 
 /*

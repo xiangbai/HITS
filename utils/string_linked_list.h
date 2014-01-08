@@ -20,8 +20,8 @@ typedef struct string_node {
 
 // struct for the linked list
 typedef struct string_llist {
-	struct string_node *front;
-	struct string_node *back;
+	string_node *front;
+	string_node *back;
 	size_t size;
 	size_t num_chars;
 } string_llist;
@@ -31,6 +31,11 @@ typedef struct string_llist {
  * Sets front and back pointers to null and size to 0.
  */
 void string_llist_init(string_llist *list);
+
+/*
+ * Free contents of linked list and the list itself
+ */
+void string_llist_free(string_llist *list);
 
 /*
  * Push a string to the front of the linked list

@@ -127,32 +127,6 @@ int substrings_to_array(parser *p, char *text, size_t textlen, size_t offset, ch
 	return 0;
 }
 
-void clean_search_results(string_llist *list)
-{
-    char pattern[] = "((^(.(?!http))*$)|(<a onclick|<a class|google.com|facebook|youtube))";
-    parser *jargonParser = init_parser(pattern);
-    
-    //int vector[jargonParser->vectorsize];
-	int vector[jargonParser->vectorsize];
-    int offset = 0;
-	
-	string_node **node = &list->front;
-    while(*node != NULL)
-	{
-        string_node *current = *node;
-		// find matches for re with text, optimized w/ study
-		int retval = pcre_exec(jargonParser->re, NULL,//p->study,
-                               current->string, strlen(current->string), offset, 0,
-                               vector, jargonParser->vectorsize);
-		
-		node = &current->next;
-        
-        // if match found, delete from list
-		if (retval > 0)
-            string_llist_delete_node(list, &current);
-	}
-}
-
 void kill_parser(parser *p)
 {
 	free(p->re);
