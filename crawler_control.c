@@ -91,65 +91,6 @@ int main(int argc, char **argv)
 		url_llist_push_back(&linkstocheck, urlfromsearch);
 	}
 
-	//fputs("\n\n\n\n\n\n\n\n after cleaning", stdout);
-    //string_llist_printforward(links_in_search);
-    
-    
-    /*string_node *temp = links_in_search->front;
-    char *tempcode = malloc(sizeof(char));
-    strcpy(tempcode, "");
-    fputs("\n\n\nprinting urls\n",stdout);
-    while(temp != NULL)
-    {
-        tempcode = realloc(tempcode, (strlen(temp->string) + strlen(tempcode) + 1));
-        strcat(tempcode, temp->string);
-        /*
-        printf("link before : %s\n\n", temp->string);
-        urlinfo *urlfromstring = makeURL(temp->string, &seedURL);
-        
-        
-        //int substrings[] = {1};
-        //get_links(temp->string, regexparser, links_after_reformat, substrings, 1);
-        
-        printf("link after makeURL: %s\n\n", url_tostring(urlfromstring));
-       
-        temp = temp->next;
-        count++;
-        url_llist_push_back(&linkstocheck, urlfromstring);
-        btree_insert(&domains, domaininfo_init(urlfromstring->host));
-         \\/
-        temp = temp->next;
-    }
-    //printf("%d urls printed", count);
-    fputs(tempcode, stdout);
-    
-    fputs("links before reformat: \n%s", stdout);
-	
-    string_llist_printforward(links_in_search);
-    
-    int sstrings[1] = {1};
-    string_llist *links_after_reformat = malloc(sizeof(string_llist));
-    string_llist_init(links_after_reformat);
-    get_links(tempcode, regexparser, links_after_reformat, sstrings, 1);
-    string_llist_printforward(links_after_reformat);
-    free(tempcode);
-    
-    temp = links_after_reformat->front;
-    while(temp != NULL)
-    {
-        urlinfo *urlfromstring = makeURL(temp->string, &seedURL);
-        printf("link after makeURL: %s\n", url_tostring(urlfromstring));
-        url_llist_push_back(&linkstocheck, urlfromstring);
-        btree_insert(&domains, domaininfo_init(urlfromstring->host));
-        temp = temp->next;
-    }*/
-    
-	//url_llist_push_back(&linkstocheck, &seedURL);
-	////btree_insert(&domains, &seedURL);
-	//btree_insert(&domains, domaininfo_init(seedURL.host));
-	////string_llist_push_back(&hostsfound, seedURL.host);
-	////url_llist_push_back(&allURLs, &seedURL);
-	
 	int maxperdomain = 8;
 	int maxlinks = (argc > 2)? atoi(argv[2]): 6;
 	int searchdepth = (argc > 3)? atoi(argv[3]): 1;
@@ -219,8 +160,6 @@ int main(int argc, char **argv)
 					//int stringindex = string_llist_find(&hostsfound, urlfromstring->host);
 					domaininfo *newdomain = domaininfo_init(urlfromstring->host);
 					domaininfo *domain = btree_find(&domains, newdomain);
-                    			if (domain)
-                        			printf("found: %s\n", domain->name);
                     
 					if (domain)
 					{
@@ -237,8 +176,6 @@ int main(int argc, char **argv)
 						domaininfo_pushurl(newdomain, urlfromstring);
 						btree_insert(&domains, newdomain);
 					}
-					//url_llist_push_back(&allURLs, urlfromstring);
-					//string_llist_push_back(&hostsfound, urlfromstring->host);
 					printf("x");
 				}
 				printf("\n");
@@ -331,12 +268,8 @@ void formatSearchRequest(urlinfo *url, char *request)
 
 int get_links(char *code, parser *p, string_llist *list, int *substrings, int num_substrings)
 {
-	//fputs("parsing links..\n\n", stdout);
-	
-	// get list of links using regex
 	int codelen = strlen(code);
 	parse_all(p, code, codelen, list, substrings, num_substrings);
-	//string_llist_printforward(list);	
 	return 0;
 }
 
@@ -347,27 +280,23 @@ int get_links(char *code, parser *p, string_llist *list, int *substrings, int nu
  */
 char *loadPage(int socket)
 {
-    	fputs("loading code..\n", stdout);
     	// declare variables
     	char buffer[BUFFER_SIZE];
     	int bytes_received = 0;
     	string_llist list;
-	puts("allocated space"); 
+	
 	// clear list
 	string_llist_init(&list);
-	puts("initialized list"); 
-    	// read data and push to linked list, avoiding the need to know code length beforehand
+    	
+	// read data and push to linked list, avoiding the need to know code length beforehand
     	do
     	{
-		puts("setting memory");
         	memset(buffer, 0, sizeof(buffer));
-		puts("receiving..?");
         	bytes_received = read(socket, buffer, BUFFER_SIZE - 1);
-        	printf("bytes received: %d\n", bytes_received);
 		buffer[BUFFER_SIZE - 1] = '\0';
         	string_llist_push_back(&list, buffer);
     	} while (bytes_received);
-	fputs("got code..\n", stdout);
+	
 	// allocate enough space to store code in linked list (and null char)
     	char *code = (char *) malloc((list.num_chars + 1) * sizeof(char));
     
@@ -379,7 +308,6 @@ char *loadPage(int socket)
     	    strcpy(code + current_index, buffer);
     	    current_index += strlen(buffer);
     	}
-	fputs("made list\n", stdout);
     	
     	return code;
 }
@@ -419,7 +347,7 @@ string_llist *get_base_graph(char *request, char *port_string,
     
     int resultsPerPage = 100;
     int i;
-    for(i = 1; i < 100; i += resultsPerPage)
+    for(i = 1; i < 1000; i += resultsPerPage)
     {
         incrementResultsRequest(searchURL->path, pathclone, i, resultsPerPage);
         
@@ -445,13 +373,6 @@ string_llist *get_base_graph(char *request, char *port_string,
 	    int substrings[] = {0, 1};
             get_links(code, regexparser, tags_and_urls, substrings, 2);
         
-            //fputs("\nbefore cleaning\n\n\n\n\n\n\n\n\n", stdout);
-            //string_llist_printforward(links_in_code);
-            
-            //following lines for testing purposes
-            //clean_search_results(links_in_code);
-            //printf("print cleaned results form search %d to %d, ",i, i+resultsPerPage-1);
-            //string_llist_printforward(links_in_code);
         }
         else
      	       report_error("socket_connect() failed");
