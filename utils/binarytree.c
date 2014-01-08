@@ -65,7 +65,7 @@ void btree_insert(btree *tree, void *data)//, int (*comparefunction)(void *a, vo
 			node->right = prev;
 			prev->left = node;
 			prev->leftthread = 0;
-			if (current && current->right == prev)
+			if (current && current->rightthread)
 				current->right = node;
 		}
 		else
@@ -74,7 +74,7 @@ void btree_insert(btree *tree, void *data)//, int (*comparefunction)(void *a, vo
 			node->left = prev;
 			prev->right = node;
 			prev->rightthread = 0;
-			if (current && current->left == prev)
+			if (current && current->leftthread)
 				current->left = node;
 		}
 	}
@@ -262,7 +262,6 @@ void *btree_find(btree *tree, void *data)//, int(*comparefunction)(void *a, void
 		return current->data;
 	
 	return NULL;
-	
 }
 
 void **btree_toarray(btree *tree)
@@ -281,14 +280,14 @@ void **btree_toarray(btree *tree)
 	{
 		array[i] = node->data;
 		
-        if (node->rightthread)
-            node = node->right;
-        else
-        {
-            node = node->right;
-            while(!node->leftthread)
-                node = node->left;
-        }
+        	if (node->rightthread)
+        	    node = node->right;
+        	else
+        	{
+        	    node = node->right;
+        	    while(!node->leftthread)
+        	        node = node->left;
+        	}
 	}
 	
 	// return the array

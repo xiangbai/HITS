@@ -164,7 +164,7 @@ int main(int argc, char **argv)
 			break;
 		printf("depth: %d\n", newURL->searchdepth);
 		
-        getRequest(newURL, request);
+        	getRequest(newURL, request);
 		//getRequest(newURL, request);
 		//printf("[request to %s] \n%s", newURL->host, request);
 		
@@ -205,9 +205,9 @@ int main(int argc, char **argv)
 					
 					//int stringindex = string_llist_find(&hostsfound, urlfromstring->host);
 					domaininfo *newdomain = domaininfo_init(urlfromstring->host);
-                    domaininfo *domain = btree_find(&domains, newdomain);
-                    if (domain)
-                        printf("found: %s\n", domain->name);
+					domaininfo *domain = btree_find(&domains, newdomain);
+                    			if (domain)
+                        			printf("found: %s\n", domain->name);
                     
 					if (domain)
 					{
@@ -285,9 +285,9 @@ void getRequest(urlinfo *url, char *request)
 	strcat(request, " HTTP/1.0\n");
 
 	// construct headers
-    strcat(request, "Host: ");
-    strcat(request, url->host);
-    strcat(request, "\n");
+    	strcat(request, "Host: ");
+    	strcat(request, url->host);
+    	strcat(request, "\n");
 	strcat(request, "From: thoffma7@emich.edu\n");
 	strcat(request, "User-Agent: crawler/0.40\n");
 
@@ -334,37 +334,41 @@ int get_links(char *code, parser *p, string_llist *list, int *substrings, int nu
  */
 char *loadPage(int socket)
 {
-    fputs("loading code..\n", stdout);
-    // declare variables
-    char buffer[BUFFER_SIZE];
-    int bytes_received = 0;
-    string_llist list;
+    	fputs("loading code..\n", stdout);
+    	// declare variables
+    	char buffer[BUFFER_SIZE];
+    	int bytes_received = 0;
+    	string_llist list;
+	puts("allocated space"); 
+	// clear list
+	string_llist_init(&list);
+	puts("initialized list"); 
+    	// read data and push to linked list, avoiding the need to know code length beforehand
+    	do
+    	{
+		puts("setting memory");
+        	memset(buffer, 0, sizeof(buffer));
+		puts("receiving..?");
+        	bytes_received = read(socket, buffer, BUFFER_SIZE - 1);
+        	printf("bytes received: %d\n", bytes_received);
+		buffer[BUFFER_SIZE - 1] = '\0';
+        	string_llist_push_back(&list, buffer);
+    	} while (bytes_received);
+	fputs("got code..\n", stdout);
+	// allocate enough space to store code in linked list (and null char)
+    	char *code = (char *) malloc((list.num_chars + 1) * sizeof(char));
     
-    // clear list
-    string_llist_init(&list);
-    
-    // read data and push to linked list, avoiding the need to know code length beforehand
-    do
-    {
-        memset(buffer, 0, sizeof(buffer));
-        bytes_received = read(socket, buffer, BUFFER_SIZE - 1);
-        buffer[BUFFER_SIZE - 1] = '\0';
-        string_llist_push_back(&list, buffer);
-    } while (bytes_received);
-    
-    // allocate enough space to store code in linked list (and null char)
-    char *code = (char *) malloc((list.num_chars + 1) * sizeof(char));
-    
-    // load code from linked list to string
-    size_t current_index = 0;
-    while (list.size)
-    {
-        string_llist_pop_front(&list, buffer);
-        strcpy(code + current_index, buffer);
-        current_index += strlen(buffer);
-    }
-    
-    return code;
+    	// load code from linked list to string
+    	size_t current_index = 0;
+    	while (list.size)
+    	{
+    	    string_llist_pop_front(&list, buffer);
+    	    strcpy(code + current_index, buffer);
+    	    current_index += strlen(buffer);
+    	}
+	fputs("made list\n", stdout);
+    	
+    	return code;
 }
 
 /*
