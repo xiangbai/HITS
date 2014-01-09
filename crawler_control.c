@@ -82,7 +82,7 @@ int main(int argc, char **argv)
 	while (links_in_search->size)
 	{
 		string_llist_pop_front(links_in_search, link_in_search);
-		urlinfo *urlfromsearch = makeURL(link_in_search, &seedURL);
+		urlinfo *urlfromsearch = makeURLfromlink(link_in_search, &seedURL);
 		url_llist_push_back(&linkstocheck, urlfromsearch);
 	}
 
@@ -109,8 +109,12 @@ int main(int argc, char **argv)
 		// break if search depth is too high
 		if (newURL->searchdepth > searchdepth)
 			continue;	//break;
-	
-		printf("link #%d: depth=%d\n", linkcount, newURL->searchdepth);
+		
+		// break if a second-order redirect
+		if (newURL->redirectdepth > 1)
+			continue;
+			
+		printf("link #%d: depth=%d, redirect-depth=%d\n", linkcount, newURL->searchdepth, newURL->redirectdepth);
 	
 		// generate request	
         	getRequest(newURL, request);
@@ -146,7 +150,7 @@ int main(int argc, char **argv)
 				while (links_in_code->size)
 				{
 					string_llist_pop_front(links_in_code, urlstring);
-					urlinfo *urlfromstring = makeURL(urlstring, newURL);
+					urlinfo *urlfromstring = makeURLfromlink(urlstring, newURL);
 				
 					// do not add duplicates
 					if (btree_find(&linksfound, urlfromstring))
@@ -181,7 +185,7 @@ int main(int argc, char **argv)
 				// set up new url from redirect info
 				char *redirectURL = get_300_location(code);
 				printf("REDIrECT TO %s\n", redirectURL);
-				urlinfo *redirect = makeURL(redirectURL, newURL);
+				urlinfo *redirect = makeURLfromredirect(redirectURL, newURL);
 				//redirect->searchdepth = newURL->searchdepth;
 				
 				// if new, push new url to the front of the list so it will be checked next
@@ -412,13 +416,13 @@ void clean_search_results(string_llist *tags_and_urls, string_llist *destination
 		pcre_exec(jargonParser->re, NULL,//p->study,
                 		node->string, strlen(node->string), 0, 0,
                 		vector, jargonParser->vectorsize);
-        
-        	// if match not found, add to destination list
+       		
+        	// if match not found, add to destination list (which comes after the <a> tag
 		if (vector[0] < 0)
-		// push associate url, which comes after the current <a> tag
+		{
 			string_llist_push_back(destination, node->next->string);
-			//string_llist_delete_node(list, &current);
-		
+		}
+
 		// increment by 2 to get to the next <a> tag
 		node = node->next->next;
 	}
