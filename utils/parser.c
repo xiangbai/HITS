@@ -44,7 +44,7 @@ void parse_all(parser *p, char *text, size_t textlen, string_llist *destination,
 {
 	int vector[p->vectorsize];
 	int offset = 0;
-	int nummatches = 0;
+	//int nummatches = 0;
 	int i;
 	
 	// loop until no more matches are found
@@ -91,7 +91,7 @@ void parse_all(parser *p, char *text, size_t textlen, string_llist *destination,
 int substrings_to_array(parser *p, char *text, size_t textlen, size_t offset, char **array)
 {	
 	int vector[p->vectorsize];
-	int nummatches = 0;
+	//int nummatches = 0;
 	int i;
 	int numsubstrings = p->vectorsize / 3;
 	// find matches for re with text, optimized w/ study

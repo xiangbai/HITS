@@ -15,7 +15,6 @@
 
 #define BUFFER_SIZE 1024
 
-char *loadPage(int socket);
 
 //userAgents randomly selected for http requests to avoid getting blocked by google
 char *userAgents[9] =
@@ -29,6 +28,7 @@ char *userAgents[9] =
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.9; rv:25.0) Gecko/20100101 Firefox/25.0",
     "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36"};
 
+char *loadPage(int socket);
 void clean_search_results(string_llist *tags_and_urls, string_llist *destination);
 void getRequest(urlinfo *url, char *request);
 int get_links(char *code, parser *p, string_llist *list, int *substrings, int num_substrings);
@@ -40,7 +40,6 @@ string_llist *get_base_graph(char *request, char *port_string, parser *regexpars
 /* main routine for testing our crawler's funcitonality */
 int main(int argc, char **argv)
 {
-	//char pattern[] = "<a [^>]*?href *?= *?[\'\"]([^\">]+)[\'\"].*?>";
 	char pattern[] = "<a [^>]*?href *= *[\'\"]([^\"\'>]+)[\'\"].*?>";
 	parser *regexparser;
 	int socket;
@@ -64,8 +63,6 @@ int main(int argc, char **argv)
 	url_llist_init(&linkstocheck);
 	btree_init(&domains, (void *)&compare_domain_name);
 	btree_init(&linksfound, (void *)&urlcompare);
-	//url_llist_init(&allURLs);
-	//string_llist_init(&hostsfound);
 
 	//seed list
 	if (argc > 1)
@@ -77,9 +74,8 @@ int main(int argc, char **argv)
 	seedURL.filename = "";
 	seedURL.searchdepth = 0;
 	
-    
-    string_llist *links_in_search;
-    links_in_search = get_base_graph(request, port_string, regexparser, &seedURL);
+	string_llist *links_in_search;
+	links_in_search = get_base_graph(request, port_string, regexparser, &seedURL);
 	
 	// convert links found for base graph into urlinfos to be checked 
 	char link_in_search[BUFFER_SIZE];
@@ -87,7 +83,6 @@ int main(int argc, char **argv)
 	{
 		string_llist_pop_front(links_in_search, link_in_search);
 		urlinfo *urlfromsearch = makeURL(link_in_search, &seedURL);
-		printf("making url: %s\n", url_tostring(urlfromsearch));
 		url_llist_push_back(&linkstocheck, urlfromsearch);
 	}
 
@@ -111,16 +106,17 @@ int main(int argc, char **argv)
 		
 		newURL = url_llist_pop_front(&linkstocheck);
 		
-		printf("link #%d: depth=%d\n", linkcount, newURL->searchdepth);
-		
 		// break if search depth is too high
 		if (newURL->searchdepth > searchdepth)
-			break;
-		printf("depth: %d\n", newURL->searchdepth);
-		
+			continue;	//break;
+	
+		printf("link #%d: depth=%d\n", linkcount, newURL->searchdepth);
+	
+		// generate request	
         	getRequest(newURL, request);
-		//getRequest(newURL, request);
-		//printf("[request to %s] \n%s", newURL->host, request);
+		
+		// notify user of url
+		printf("URL: %s %s %s\n", newURL->host, newURL->path, newURL->filename);
 		
 		socket = connect_socket(newURL->host, port_string, stdout);
 		if (socket >= 0)
@@ -181,7 +177,20 @@ int main(int argc, char **argv)
 				printf("\n");
 			}
 			else if (statuscode >= 300 && statuscode < 400)
-				printf("%s\n", code);
+			{
+				// set up new url from redirect info
+				char *redirectURL = get_300_location(code);
+				printf("REDIrECT TO %s\n", redirectURL);
+				urlinfo *redirect = makeURL(redirectURL, newURL);
+				//redirect->searchdepth = newURL->searchdepth;
+				
+				// if new, push new url to the front of the list so it will be checked next
+				if (!btree_find(&linksfound, redirect))
+				{	
+					url_llist_push_front(&linkstocheck, redirect);
+					btree_insert(&linksfound, redirect);
+				}
+			}
 		}
 		else
 			report_error("socket_connect() failed");	
@@ -327,56 +336,53 @@ char *loadPage(int socket)
 string_llist *get_base_graph(char *request, char *port_string,
                              parser *regexparser, urlinfo *searchURL)
 {
-    char *pathclone;
+	char *pathclone;
     
-    getUserSearchQuery(searchURL->path);
+	getUserSearchQuery(searchURL->path);
     
-    // to hold search query minus the "start=num" part for easy reload and update
-    pathclone = malloc(strlen(searchURL->path)+1);
-    strcpy(pathclone, searchURL->path);
+	// to hold search query minus the "start=num" part for easy reload and update
+	pathclone = malloc(strlen(searchURL->path)+1);
+	strcpy(pathclone, searchURL->path);
     
-    // create linked list to hold hyperlinks from code
-    string_llist *links_in_code = malloc(sizeof(string_llist));
-    string_llist_init(links_in_code);
+	// create linked list to hold hyperlinks from code
+	string_llist *links_in_code = malloc(sizeof(string_llist));
+	string_llist_init(links_in_code);
     
 	// linked list to hold <a> tags and associated urls
 	string_llist *tags_and_urls = malloc(sizeof(string_llist));
 	string_llist_init(tags_and_urls);
 
-    int socket;
+	int socket;
     
-    int resultsPerPage = 100;
-    int i;
-    for(i = 1; i < 1000; i += resultsPerPage)
-    {
-        incrementResultsRequest(searchURL->path, pathclone, i, resultsPerPage);
-        
-        getRequest(searchURL, request);
-        //formatSearchRequest(searchURL, request);
-        
-        socket = connect_socket(searchURL->host, port_string, stdout);
-        if (socket >= 0)
-        {
-            // send http requrest
-            fputs("\nsending http request: \n", stdout);
-            fputs(request, stdout);
-            
-            //optional: wait for some time so google don't block us!
-            //sleep( (rand() % 45) + 7); // in seconds
-            send(socket, request, strlen(request), 0);
-            
-            // get code
-            char *code = loadPage(socket);
-            
-            //following line for testing
-            fputs(code, stdout);
-	    int substrings[] = {0, 1};
-            get_links(code, regexparser, tags_and_urls, substrings, 2);
-        
-        }
-        else
-     	       report_error("socket_connect() failed");
-        
+	int resultsPerPage = 100;
+	int i;
+	for(i = 1; i < 100; i += resultsPerPage)
+	{
+	        incrementResultsRequest(searchURL->path, pathclone, i, resultsPerPage);
+	        
+	        getRequest(searchURL, request);
+	        //formatSearchRequest(searchURL, request);
+	        
+	        socket = connect_socket(searchURL->host, port_string, stdout);
+	        if (socket >= 0)
+	        {
+			// send http requrest
+			fputs("\nsending http request: \n", stdout);
+			fputs(request, stdout);
+	            
+			send(socket, request, strlen(request), 0);
+	            
+			// get code
+			char *code = loadPage(socket);
+	            
+			// get array containing <a> tags and associated urls
+			int substrings[] = {0, 1};
+			get_links(code, regexparser, tags_and_urls, substrings, 2);
+	        
+	        }
+	        else
+	     	       report_error("socket_connect() failed");
+	        
         	// close the socket
 		close(socket);
 	}
@@ -403,10 +409,9 @@ void clean_search_results(string_llist *tags_and_urls, string_llist *destination
 	while(node)
 	{
 		// find matches for re with text, optimized w/ study
-		int retval = pcre_exec(jargonParser->re, NULL,//p->study,
-                              node->string, strlen(node->string), 0, 0,
-                              vector, jargonParser->vectorsize);
-		
+		pcre_exec(jargonParser->re, NULL,//p->study,
+                		node->string, strlen(node->string), 0, 0,
+                		vector, jargonParser->vectorsize);
         
         	// if match not found, add to destination list
 		if (vector[0] < 0)

@@ -6,8 +6,9 @@
 #include <string.h>
 
 
-// Regex pattern to be used. Initialize once
+// Regex patterns to be used. Initialize once
 parser *status_code_regex = NULL;
+parser *location_regex = NULL;
 
 int get_status_code(char *code)
 {
@@ -27,4 +28,18 @@ int get_status_code(char *code)
 	putc('\n', stdout);
 	
 	return statuscode;
+}
+
+
+char *get_300_location(char *code)
+{
+	// initialize location_regex if not yet done
+	if (!location_regex)
+		location_regex = init_parser(LOCATION_ERROR_REGEX);
+
+	char *substrings[2];
+	substrings_to_array(location_regex, code, strlen(code), 0, substrings);
+	char *location = substrings[LOCATION_ERROR_URL];
+	
+	return location;
 }

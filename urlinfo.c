@@ -12,24 +12,27 @@
  * more substrings are returned than desired, because parentheses are also part of regex syntax
  * assume output[] is returned by parser.substrings_to_array(), which uses pcre
  * output[0]: string matching the entire string
- * output[1]: domain
- * output[2]: domain extension
- * output[3]: a sequence of 0 or more "../", indicating how many folders to go up
- * output[4]: the last instance of "../" if it exists
- * output[5]: the path and filename following the domain and any instances of "../"
+ * output[1]: scheme: https, https, "//" 
+ * output[2]: 
+ * output[3]: domain
+ * output[4]: domain extension
+ * output[5]: a sequence of 0 or more "../", indicating how many folders to go up
+ * output[6]: the last instance of "../" if it exists
+ * output[7]: the path and filename following the domain and any instances of "../"
 		functions as the path for relative paths with no filename and not ending in '/'
- * output[6]: path, assuming there is a filename, or the path ends in '/'
- * output[7]: filename
+ * output[8]: path, assuming there is a filename, or the path ends in '/'
+ * output[9]: last folder in path
+ * output[10]: filename
  * 
  * Macros should always be used to extract info, because this pattern is likely to change
  */
-#define URL_REGEX "(//)?(.+://)?([^/\\.]\\.)?(.+?\\.(com|coop|edu|net|org|uk))?/?((\\.\\./)*)((([^/]+/)*)?([^/\\.]+\\..+)?)?"
-#define URL_REGEX_NUM_SUBSTRINGS 12
-#define URL_REGEX_DOMAIN 4
-#define URL_REGEX_UP_FOLDER 6
-#define URL_REGEX_PATH 9
-#define URL_REGEX_PATH2 8
-#define URL_REGEX_FILE 11
+#define URL_REGEX "(.*?:?//)?([^/\\.]\\.)?(.+?\\.(com|coop|edu|net|org|uk))?/?((\\.\\./)*)((([^/]+/)*)?([^/\\.]+\\..+)?)?"
+#define URL_REGEX_NUM_SUBSTRINGS 11
+#define URL_REGEX_DOMAIN 3
+#define URL_REGEX_UP_FOLDER 5
+#define URL_REGEX_PATH 8
+#define URL_REGEX_PATH2 7
+#define URL_REGEX_FILE 10
 
 // Regex pattern to be used. Initialize once
 parser *regex = NULL;

@@ -37,8 +37,6 @@ int connect_socket(char *host_string, char *port_string, FILE *stream)
 		if (socket_id < 0)
 			continue;
 		
-		printf("attempting to connect to %s\n", host_string);
-		
 		// connect to server (break if connection is successful)
 		int connectval = connect(socket_id, current->ai_addr, current->ai_addrlen);
 		if (connectval == 0)
