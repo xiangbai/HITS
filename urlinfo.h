@@ -17,6 +17,8 @@ typedef struct urlinfo
 	char *filename;
 	int searchdepth;
 	struct urlinfo *next;
+    double hubScore;
+    double authScore;
 } urlinfo;
 
 /*
