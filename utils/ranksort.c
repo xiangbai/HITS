@@ -2,11 +2,23 @@
 #include <stdlib.h>
 #include "ranksort.h"
 
+void rec_quick_sort(urlinfo **urlArray, int left, int right);
+double median_of_3(urlinfo **urlArray, int left, int right);
+void swap(urlinfo **urlArray, int index1, int index2);
+int partition_it(urlinfo **urlArray, int left, int right, double pivot);
+void insertion_sort(urlinfo **urlArray, int left, int right);
+
+/*
+ * Public method for quicksort on array of urlinfo pointers
+ */
 void rank_sort(urlinfo **urlArray, int urlSize)
 {
     rec_quick_sort(urlArray, 0, urlSize-1);
 }
 
+/*
+ * Private helper method for rank_sort, the recursive call
+ */
 void rec_quick_sort(urlinfo **urlArray, int left, int right)
 {
     int size = right-left+1;
@@ -21,6 +33,11 @@ void rec_quick_sort(urlinfo **urlArray, int left, int right)
     }
 }
 
+/*
+ * Private helper method for rank_sort, returns the pivot 
+ * value for partitioning by taking the median of the first,
+ * middle, and last elements of a sub-array.
+ */
 double median_of_3(urlinfo **urlArray, int left, int right)
 {
     int center = (left+right)/2;
@@ -38,6 +55,9 @@ double median_of_3(urlinfo **urlArray, int left, int right)
     return urlArray[right-1]->authScore;
 }
 
+/*
+ * Swaps the indices
+ */
 void swap(urlinfo **urlArray, int index1, int index2)
 {
     urlinfo *temp = urlArray[index1];
@@ -45,7 +65,11 @@ void swap(urlinfo **urlArray, int index1, int index2)
     urlArray[index2] = temp;
 }
 
-int partition_it(urlinfo **urlArray, int left, int right, double pivot)
+/* Partitions the portion of the array so that all elements to the right of
+ * the pivot are greater than the pivot and all elements to the left of the
+ * pivot are less than the pivot. Returns the index of the pivot.
+ */
+ int partition_it(urlinfo **urlArray, int left, int right, double pivot)
 {
     int leftPtr = left;
     int rightPtr = right - 1;
@@ -63,6 +87,9 @@ int partition_it(urlinfo **urlArray, int left, int right, double pivot)
     return leftPtr;
 }
 
+/*
+ * Insertion sort to handle small sub-arrays.
+ */
 void insertion_sort(urlinfo **urlArray, int left, int right)
 {
     int in, out;

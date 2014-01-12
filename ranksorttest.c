@@ -3,6 +3,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+/***************************************************************
+ * ranksorttest.c
+ *
+ * main method for testing functionallity of ranksort.c
+ ***************************************************************/
+
 int main()
 {
     size_t numURLS = 10;
@@ -17,7 +23,6 @@ int main()
         urlArray[j]->filename = temp;
         urlArray[j]->authScore = (double)(rand() % 20 + 1);
     }
-    
     
     rank_sort(urlArray, (int)numURLS);
     
