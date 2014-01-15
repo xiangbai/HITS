@@ -34,6 +34,12 @@ typedef struct llist {
 void llist_init(llist *list, int (*equalsfunction)(void *a, void *b));
 
 /*
+ * Free a linked list and all lnodes it contains
+ * If free_pointers != 0, the values pointed to by lnodes will be freed as well
+ */
+void llist_free(llist *list, int free_pointers);
+
+/*
  * Push data to the front of the linked list
  */
 void llist_push_front(llist *list, void *data);

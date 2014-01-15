@@ -40,6 +40,9 @@ char *get_300_location(char *code)
 	char *substrings[2];
 	substrings_to_array(location_regex, code, strlen(code), 0, substrings);
 	char *location = substrings[LOCATION_ERROR_URL];
-	
+
+	// free the other substring
+	free(substrings[1 - LOCATION_ERROR_URL]);
+		
 	return location;
 }

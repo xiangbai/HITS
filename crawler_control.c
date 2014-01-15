@@ -15,7 +15,6 @@
 
 #define BUFFER_SIZE 1024
 
-
 //userAgents randomly selected for http requests to avoid getting blocked by google
 char *userAgents[9] =
 {"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36",
@@ -85,9 +84,11 @@ int main(int argc, char **argv)
 		urlinfo *urlfromsearch = makeURLfromlink(link_in_search, &seedURL);
 		url_llist_push_back(&linkstocheck, urlfromsearch);
 	}
+	// free links_in_search
+	string_llist_free_all(links_in_search);
 
 	int maxperdomain = 8;
-	int maxlinks = (argc > 2)? atoi(argv[2]): 6;
+	int maxlinks = (argc > 2)? atoi(argv[2]): 4;
 	int searchdepth = (argc > 3)? atoi(argv[3]): 1;
 
 	int linkcount = 1;
@@ -115,7 +116,7 @@ int main(int argc, char **argv)
 			continue;
 			
 		printf("link #%d: depth=%d, redirect-depth=%d\n", linkcount, newURL->searchdepth, newURL->redirectdepth);
-	
+		
 		// generate request	
         	getRequest(newURL, request);
 		
@@ -125,36 +126,41 @@ int main(int argc, char **argv)
 		socket = connect_socket(newURL->host, port_string, stdout);
 		if (socket >= 0)
 		{
+			puts("connected");
 			// send http requrest
 			send(socket, request, strlen(request), 0);
-			
+			puts("sent request");
 			// get code
 			char *code = loadPage(socket);
-			
+			puts("grabbed code");
 			// test if the page loaded properly
 			int statuscode = get_status_code(code);
-			
+			puts("a");
 			if (statuscode >= 200 && statuscode < 300)
 			{
 				// success
 				linkcount++;
 				
 				// create linked list to hold hyperlinks from code
-				string_llist *links_in_code = malloc(sizeof(string_llist));
-				string_llist_init(links_in_code);
+				string_llist links_in_code;// = malloc(sizeof(string_llist));
+				string_llist_init(&links_in_code);
 				int substrings[] = {1};
-				get_links(code, regexparser, links_in_code, substrings, 1);
+				get_links(code, regexparser, &links_in_code, substrings, 1);
+				
 				// load urls
 				printf("links: ");
 				char urlstring[BUFFER_SIZE];
-				while (links_in_code->size)
+				while (links_in_code.size)
 				{
-					string_llist_pop_front(links_in_code, urlstring);
+					string_llist_pop_front(&links_in_code, urlstring);
 					urlinfo *urlfromstring = makeURLfromlink(urlstring, newURL);
-				
+						
 					// do not add duplicates
 					if (btree_find(&linksfound, urlfromstring))
+					{
+						freeURL(urlfromstring);
 						continue;
+					}
 					btree_insert(&linksfound, urlfromstring);
 					
 					//int stringindex = string_llist_find(&hostsfound, urlfromstring->host);
@@ -178,6 +184,7 @@ int main(int argc, char **argv)
 					}
 					printf("x");
 				}
+				
 				printf("\n");
 			}
 			else if (statuscode >= 300 && statuscode < 400)
@@ -194,7 +201,13 @@ int main(int argc, char **argv)
 					url_llist_push_front(&linkstocheck, redirect);
 					btree_insert(&linksfound, redirect);
 				}
+				else
+				{
+					freeURL(redirect);
+				}
+				free(redirectURL);
 			}
+			free(code);
 		}
 		else
 			report_error("socket_connect() failed");	
@@ -223,9 +236,12 @@ int main(int argc, char **argv)
 		printf("%s\n", urlstring);
 			
 		free(urlstring);
-		freeURL(newURL);
+		//freeURL(newURL);
 	}
-	free(urlarray);
+	// free main data structures
+	btree_free(&domains, 1);
+	btree_free(&linksfound, 1);	// free all links found
+	url_llist_free(&linkstocheck); 	// subset of links found; pointers already cleared
 
 	return 0;
 }
@@ -382,7 +398,7 @@ string_llist *get_base_graph(char *request, char *port_string,
 			// get array containing <a> tags and associated urls
 			int substrings[] = {0, 1};
 			get_links(code, regexparser, tags_and_urls, substrings, 2);
-	        
+	       		free(code); 
 	        }
 	        else
 	     	       report_error("socket_connect() failed");
@@ -420,6 +436,7 @@ void clean_search_results(string_llist *tags_and_urls, string_llist *destination
         	// if match not found, add to destination list (which comes after the <a> tag
 		if (vector[0] < 0)
 		{
+			printf("%s\n", node->next->string);
 			string_llist_push_back(destination, node->next->string);
 		}
 

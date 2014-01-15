@@ -11,6 +11,21 @@ void llist_init(llist *list, int (*equalsfunction)(void *a, void *b))
 	list->size = 0;
 }
 
+void llist_free(llist *list, int free_pointers)
+{
+	lnode *current = list->front;
+	lnode *next;
+	
+	while(current)
+	{
+		next = current->next;
+		if (free_pointers)
+			free(current->data);
+		free(current);
+		current = next;
+	}
+}
+
 void llist_push_front(llist *list, void *data)
 {
 	// create new node

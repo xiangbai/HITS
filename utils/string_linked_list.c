@@ -12,28 +12,33 @@ void string_llist_init(string_llist *list)
 	list->num_chars = 0;
 }
 
-void string_llist_empty(string_llist *list)
+void string_llist_empty(string_llist *list, int free_strings)
 {
-	if (list->size)
+	string_node *current = list->front;
+	string_node *next;
+	while (current)
 	{
-		string_node *current = list->front;
-		string_node *next;
-		while (current)
-		{
-			next = current->next;
-			free(current);
-			current = next;
-		}
-		list->front = NULL;
-		list->back = NULL;
-		list->size = 0;
-		list->num_chars = 0;
+		next = current->next;
+		if (free_strings)
+			free(current->string);
+		free(current);
+		current = next;
 	}
+	list->front = NULL;
+	list->back = NULL;
+	list->size = 0;
+	list->num_chars = 0;
 }
 
 void string_llist_free(string_llist *list)
 {
-	string_llist_empty(list);
+	string_llist_empty(list, 0);
+	free(list);
+}
+
+void string_llist_free_all(string_llist *list)
+{
+	string_llist_empty(list, 1);
 	free(list);
 }
 

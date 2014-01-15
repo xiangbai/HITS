@@ -52,4 +52,16 @@ urlinfo *url_llist_pop_front(url_llist *list);
  */
 urlinfo *url_llist_pop_back(url_llist *list);
 
+/*
+ * Free a url_llist
+ * NOTE: This does not free the urlinfos it points to
+ */
+void url_llist_free(url_llist *list);
+
+/*
+ * Free a url_llist
+ * NOTE: This frees the urlinfos it points to
+ */
+void url_llist_free_all(url_llist *list);
+
 #endif

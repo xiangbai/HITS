@@ -21,7 +21,14 @@
 		BUG: in crawler_control.c
 			occationsally, urls are added to linksfound(binary tree) when they are found multiple times. Likely a problem with either btree_find() or the urlinfo compare function.
 
-01/07/2014:	Mad changes in how crawler_control calls parse_all, and which file contains clean_links
+01/07/2014:	Made changes in how crawler_control calls parse_all, and which file contains clean_links
 		- crawler_control now uses one call to parseall for seed links.
 			this returns a linked list of <a> tags and urls in alternating order
 		- clean_links puts urls into linkstofind if the corresponding <a> meets the criteria.
+
+01/12/2014:	Fixed few memory leaks and added functions for freeing collections and their elements
+		- Memory leaks were caused by not freeing pointers returned from functions
+		  ..and from linked lists not being cleared
+		- Binarytree and all implementations of linked list now have associated free functions
+			These may either free just the collection
+			..or the collection, and the data it holds

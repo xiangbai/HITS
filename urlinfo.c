@@ -242,7 +242,6 @@ urlinfo *freeURL(urlinfo *url)
 	free(url->path);
 	free(url->filename);
 	free(url);
-
 	return next;
 }
 
