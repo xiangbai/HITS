@@ -46,7 +46,7 @@ double median_of_3(urlinfo **urlArray, int left, int right)
         swap(urlArray, left, center);
     
     if (urlArray[left]->authScore > urlArray[right]->authScore)
-        swap(urlArray, left, center);
+        swap(urlArray, left, right);
     
     if (urlArray[center]->authScore > urlArray[right]->authScore)
         swap(urlArray, center, right);
