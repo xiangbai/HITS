@@ -1,3 +1,5 @@
 *.o
+*.docx
 crawler
 ranksorttest
+cachetest

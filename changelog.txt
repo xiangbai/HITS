@@ -21,7 +21,15 @@
 		BUG: in crawler_control.c
 			occationsally, urls are added to linksfound(binary tree) when they are found multiple times. Likely a problem with either btree_find() or the urlinfo compare function.
 
-01/07/2014:	Mad changes in how crawler_control calls parse_all, and which file contains clean_links
+01/07/2014:	Made changes in how crawler_control calls parse_all, and which file contains clean_links
 		- crawler_control now uses one call to parseall for seed links.
 			this returns a linked list of <a> tags and urls in alternating order
 		- clean_links puts urls into linkstofind if the corresponding <a> meets the criteria.
+
+01/16/2014	Added functions for caching search results
+		- These are not implemented in crawler_control.c yet
+		- Requires that the folder to hold cached searches be created manually ("mkdir searches")
+		- How it works:
+			stores a master file listing all cached searches
+			eache search is stored as a separate file
+			spaces in searches are replaced with underscores

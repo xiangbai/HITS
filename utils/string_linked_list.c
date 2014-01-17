@@ -34,7 +34,6 @@ void string_llist_empty(string_llist *list)
 void string_llist_free(string_llist *list)
 {
 	string_llist_empty(list);
-	free(list);
 }
 
 void string_llist_push_front(string_llist *list, char *string)
