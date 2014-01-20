@@ -1,24 +1,32 @@
+#ifndef SEARCHCACHE_H
+#define SEARCHCACHE_H
+
 /*************************************************************
  *
- * sitecache.h
+ * searchcache.h
  *
  * Contains functions for caching search results
- * A master file holds the names of all cached pages
- * The master file and all urls are held in a separate folder
- * A separate file is created for each search, consisting
- *	of only the urls the search finds
+ * A separate file is created for each search, consisting of 
+ *	the urls the search finds, and what urls those link to
+ * The first line of the file must contain the number of urls
+ * Every url is listed on a line, followed by how many urls
+ * 	it links to.
+ * If the url had outgoing links, it is followed by a line
+ * 	containing the indexes of the urls it links to
+ * Reading and writing must therefore be done using 2 passes
+ * The first pass indexes the urls
+ * The second pass converts indexes to urls or vise versa
  * Each file is named by its search string, 
  *	with '_' replacing  ' '
  *
  *************************************************************/
 
-#include "string_linked_list.h"
-
+#include "url_linked_list.h"
 /*
  * Gets the urls found from a given search string
  * Returns NULL if the search isn't cached
  */
-string_llist *getcache(char *folder, char *mastername, char *searchstring);
+url_llist *getcache(char *folder, char *searchstring);
 
 /*
  * Creates file to hold search results
@@ -26,12 +34,6 @@ string_llist *getcache(char *folder, char *mastername, char *searchstring);
  * If the masterfile doesn't exist, it is created
  * If the url file exists, it is overwritten
  */
-void setcache(char *folder, char *mastername, char *searchstring, string_llist *urls);
+void setcache(char *folder, char *searchstring, struct url_llist *urls);
 
-/*
- * Remove a file holding search results
- * That search string will be removed from the master file as well
- */
-void removecache(char *folder, char *mastername, char *searchstring);
-
-
+#endif

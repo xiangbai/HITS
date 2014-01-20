@@ -7,6 +7,8 @@
  *  and methods for using it
  ****************************/
 
+#include "utils/llist.h"
+
 #define HOST_LENGTH 128
 #define PATH_LENGTH 2048
 
@@ -17,8 +19,9 @@ typedef struct urlinfo
 	char *filename;
 	int searchdepth;
 	struct urlinfo *next;
-    double hubScore;
-    double authScore;
+	llist outlinks;
+	double hubScore;
+	double authScore;
 } urlinfo;
 
 /*

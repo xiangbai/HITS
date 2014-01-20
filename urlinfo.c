@@ -1,6 +1,7 @@
 #include "urlinfo.h"
 #include "utils/general_utils.h"
 #include "utils/parser.h"
+#include "utils/llist.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,11 +35,22 @@
 // Regex pattern to be used. Initialize once
 parser *regex = NULL;
 
+int urlcompare(urlinfo *a, urlinfo *b)
+{
+	int compare = strcmp(a->host, b->host);
+	if (compare)
+		return compare;
+	compare = strcmp(a->path, b->path);
+	if (compare)
+		return compare;
+	return strcmp(a->filename, b->filename);	
+}
+
 urlinfo *makeURL(char *givenAddress, urlinfo *currentURL)
 {
 	urlinfo *newurl = NULL;
 	int i;
-	
+
 	// make regex if it doesn't exist yet
 	if (regex == NULL)
 		regex = init_parser(URL_REGEX);
@@ -147,6 +159,9 @@ urlinfo *makeURL(char *givenAddress, urlinfo *currentURL)
 
 	newurl->searchdepth = (currentURL)? currentURL->searchdepth + 1: 0;
 	
+	// make linked list of outgoing links
+	llist_init(&newurl->outlinks, (void *)urlcompare);
+	
 	return newurl;	
 }
 
@@ -212,15 +227,4 @@ urlinfo *freeURL(urlinfo *url)
 	free(url);
 
 	return next;
-}
-
-int urlcompare(urlinfo *a, urlinfo *b)
-{
-	int compare = strcmp(a->host, b->host);
-	if (compare)
-		return compare;
-	compare = strcmp(a->path, b->path);
-	if (compare)
-		return compare;
-	return strcmp(a->filename, b->filename);	
 }

@@ -3,12 +3,42 @@
  *******************************/
 
 #include "searchcache.h"
-#include "string_linked_list.h"
+#include "url_linked_list.h"
+#include "llist.h"
+#include "binarytree.h"
 #include "general_utils.h"
+#include "../urlinfo.h"
 #include <stdio.h>
 #include <string.h>
 
 #define MAXLENGTH 2048
+
+typedef struct indexed_url
+{
+	urlinfo *url;
+	long index;
+} indexed_url;
+
+int indexed_urlcompare(indexed_url *a, indexed_url *b)
+{
+	int compare = strcmp(a->url->host, b->url->host);
+	if (compare)
+		return compare;
+	compare = strcmp(a->url->path, b->url->path);
+	if (compare)
+		return compare;
+	return strcmp(a->url->filename, b->url->filename);	
+}
+
+int comparelong(long *a, long *b)
+{
+	if (*a == *b)
+		return 0;
+	else if (*a < *b)
+		return -1;
+	else
+		return 1;
+}
 
 // helper function to concat path and filename
 char *getpath(char *folder, char *filename)
@@ -34,170 +64,149 @@ char *tounderline(char *str)
 	return output;
 }
 
-string_llist *getcache(char *folder, char *mastername, char *searchstring)
+url_llist *getcache(char *folder, char *searchstring)
 {
-	string_llist *output = NULL;
 	char *modifiedstring = tounderline(searchstring);
-
-	// generate masterfile w/ path
-	char *path = getpath(folder, mastername);
-
-	// attempt to open master file for read
+	char *path = getpath(folder, modifiedstring);
 	FILE *file = fopen(path, "r");
-	// if it doesn't exist, create it while opening for write
-	if (!file)
-		file = fopen(path, "w+");
 	
-	// search for string
-	char search[MAXLENGTH];
-	int found = 0;
-	while(fscanf(file, "%s\n", search) != EOF)
-		if (!strcmp(modifiedstring, search))
-		{
-			// mark as found, and break
-			found = 1;
-			break;
-		}
-	// close file
-	fclose(file);
-
-	// create linked list if the search string is found	
-	if (found)
+	// return null if unable to open for read (indicating file doesn't exist
+	if (!file)
+		return NULL;
+	
+	// get number of urls
+	int numlinks;
+	fscanf(file, "%d\n", &numlinks);
+	
+	// creat array of urls, and a corresponding array holding indexes of urls each url points to
+	urlinfo *urls[numlinks];
+	llist outlink_indexes[numlinks];
+	
+	// initialize output list
+	url_llist *output = malloc(sizeof(url_llist));
+	url_llist_init(output);
+	
+	// read each url (each is on a separate line)
+	// push to linked list
+	char urlstring[MAXLENGTH];
+	int numoutlinks;
+	urlinfo *url;
+	
+	// pass 1: index urls
+	unsigned long *outlink_index;
+	unsigned long i, j;
+	
+	while(fscanf(file, "%s %d\n", urlstring, &numoutlinks) != EOF)
 	{
-		output = malloc(sizeof(string_llist));
-		string_llist_init(output);
+		// construct url (without outlinks)
+		url = makeURL(urlstring, NULL);
 		
-		// filename w/ path
-		char *urlpath = getpath(folder, search);
+		// push url and a linked list for its outlinks
+		url_llist_push_back(output, url);
+		urls[i] = url;
+		llist_init(&(outlink_indexes[i]), (void *)comparelong);
 		
-		// read each url (each is on a separate line)
-		// push to linked list
-		char url[MAXLENGTH];
-		FILE *urlfile = fopen(urlpath, "r");
-		while(fscanf(urlfile, "%s\n", url) != EOF)
-			string_llist_push_back(output, url);
+		// read and push each outlink
+		for (j = 0; j < numoutlinks; j++)
+		{
+			outlink_index = malloc(sizeof(unsigned long));
+			fscanf(file, "%lu ", outlink_index);//outlink_index))
+			llist_push_back(&(outlink_indexes[i]), outlink_index);
+		}
 		
-		// close file
-		fclose(urlfile);
+		// read in '\n'
+		fscanf(file, "\n");
 		
-		free(urlpath);
+		i++;
+	}
+	lnode *current_node, *prev_node;
+	// pass 2: get outlinks by their indexes
+	for (i = 0; i < numlinks; i++)
+	{
+		url = urls[i];
+		current_node = outlink_indexes[i].front;
+		while (current_node)
+		{
+			outlink_index = current_node->data;
+			prev_node = current_node;
+			llist_push_back(&urls[i]->outlinks, urls[(long)*outlink_index]);
+			current_node = current_node->next;
+			free(outlink_index);
+			free(prev_node);
+		}
 	}
 	free(path);
 	free(modifiedstring);
+	close(file);
 	
 	return output;	
 }
 
-void setcache(char *folder, char *mastername, char *searchstring, string_llist *urls)
+void setcache(char *folder, char *searchstring, url_llist *urls)
 {
-	char *path = getpath(folder, mastername);
-	char *modifiedstring = tounderline(searchstring);
-	// attempt to open master file for read
-	FILE *file = fopen(path, "r");
+	long i, j;
+	urlinfo *url;
+	indexed_url *iurl;
+	url_node *node = urls->front;
+	btree indexed_urls;
+	btree_init(&indexed_urls, (void *)indexed_urlcompare);
 	
-	// search for string in master file
-	char search[MAXLENGTH];
-	int found = 0;
-	while(fscanf(file, "%s\n", search) != EOF)
-		if (!strcmp(search, modifiedstring))
-		{
-			// mark as found, and break
-			found = 1;
-			break;
-		}
-	
-	// close file
-	fclose(file);
-	
-	// add the search string if it's not in the master file
-	if (!found)
+	// loop 1: index urls
+	for (i = 0; i < urls->size; i++)
 	{
-		file = fopen(path, "a");
-		if (!file)
-		{
-			report_error("Error opening file for append");
-			return;
-		}
-		fwrite(modifiedstring, sizeof(char), strlen(modifiedstring), file);
-		fwrite("\n", sizeof(char), 1, file);
-		fclose(file);
-	}
-	// free path to master file
-	free(path);
-	
-	// write all elements in list to file name=search
-	path = getpath(folder, modifiedstring);
-	file = fopen(path, "w");
+		indexed_url *iurl = malloc(sizeof(indexed_url));
+		iurl->url = node->url;
+		iurl->index = i;
 
-	// iterate through linked list
-	string_node *node = urls->front;
-	while (node)
-	{
-		fwrite(node->string, sizeof(char), strlen(node->string), file);
-		fwrite("\n", sizeof(char), 1, file);
+		btree_insert(&indexed_urls, iurl);
+				
 		node = node->next;
 	}
 
-	// close file and free file path
-	close(file);
-	free(path);
-	free(modifiedstring);
-}
-
-void removecache(char *folder, char *mastername, char *searchstring)
-{
-	/*
-	 * Writes write all strings not being deleted to a temp file.
-	 * Then renames the temp file as the main file.
-	 * If this works, the original file should be replaced.
-	 */
+	// open file for write
+	char *modifiedsearch = tounderline(searchstring);
+	char *path = getpath(folder, modifiedsearch);
 	
-	// generate filename w/ path
-	char *inpath = getpath(folder, mastername);
-	char *modifiedstring = tounderline(searchstring);
+	FILE *file = fopen(path, "w");
 	
-	// generate filename for temporary file
-	char *outpath = malloc(strlen(inpath) + 5);
-	strcpy(outpath, inpath);
-	strcat(outpath, ".swp");
-	
-	// open a file for input and output
-	FILE *infile = fopen(inpath, "r");
-	FILE *outfile = fopen(outpath, "w");
+	// write number of links
+	fprintf(file, "%d\n", urls->size);
 
-	// search through file, until pos = position of searchstring
-	//	and nextpos = the position one after the end of searchstring
-	char search[MAXLENGTH]; // +1 for null
-
-	while(fscanf(infile, "%s\n", search) != EOF)
+	// loop 2: write data
+	node = urls->front;
+	indexed_url urltofind;
+	for (i = 0; i < urls->size; i++)
 	{
-		// remove '\n' for string compare
-		search[strlen(search)] = '\0';
+		url = node->url;
 		
-		if (strcmp(modifiedstring, search))
-		{
-			// add the '\n' back for writing
-			search[strlen(search)] = '\n';
-			fwrite(search, sizeof(char), strlen(search), outfile);
-		}
-		else
-		{
-			// generate path for file to delete
-			char *searchfile = getpath(folder, search);
+		/*
+		 * Write url data
+		 * format:	index url numlinks
+		 *		link1 link2 link3
+		 */
+		// write header
+		char *urlstring = url_tostring(url);
+		fprintf(file, "%s %d\n", urlstring, url->outlinks.size);
+		free(urlstring);
+		// write links
+		lnode *outlink_node = url->outlinks.front;
+		for (j = 0; j < url->outlinks.size; j++)
+		{	
+			// find indexed url so its index can be recorded
+			urltofind.url = outlink_node->data;
+			indexed_url *iurl = btree_find(&indexed_urls, &urltofind);
 			
-			// remove the file for the search
-			if (remove(searchfile))
-				report_error("Unable to remove file");
-			free(searchfile);
+			// write it, followed by a space
+			fprintf(file, "%lu ", iurl->index);
+			outlink_node = outlink_node->next;
 		}
+		if (url->outlinks.size)
+			fprintf(file, "\n");
+		node = node->next;
 	}
-	
-	fclose(infile);
-	fclose(outfile);
-	
-	// replace infile with outfile
-	// this may fail, depending on the OS
-	if(rename(outpath, inpath))
-		report_error("Unable to overwrite file");
-	free(modifiedstring);
+
+	btree_free(&indexed_urls, 1);
+	free(modifiedsearch);
+	free(path);
+	close(file);
 }
