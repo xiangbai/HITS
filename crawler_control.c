@@ -78,12 +78,17 @@ int main(int argc, char **argv)
 	
 	// convert links found for base graph into urlinfos to be checked 
 	char link_in_search[BUFFER_SIZE];
+	puts("--- links found -------------------------------");
 	while (links_in_search->size)
 	{
 		string_llist_pop_front(links_in_search, link_in_search);
 		urlinfo *urlfromsearch = makeURLfromlink(link_in_search, &seedURL);
+		char *tostring = url_tostring(urlfromsearch);
+		printf("%s\n", tostring);
+		free(tostring);
 		url_llist_push_back(&linkstocheck, urlfromsearch);
 	}
+	puts("------------------------------------------------\n");
 	// free links_in_search
 	string_llist_free_all(links_in_search);
 
@@ -191,7 +196,7 @@ int main(int argc, char **argv)
 			{
 				// set up new url from redirect info
 				char *redirectURL = get_300_location(code);
-				printf("REDIrECT TO %s\n", redirectURL);
+				printf("REDIRECT TO %s\n", redirectURL);
 				urlinfo *redirect = makeURLfromredirect(redirectURL, newURL);
 				//redirect->searchdepth = newURL->searchdepth;
 				
@@ -436,7 +441,7 @@ void clean_search_results(string_llist *tags_and_urls, string_llist *destination
         	// if match not found, add to destination list (which comes after the <a> tag
 		if (vector[0] < 0)
 		{
-			printf("%s\n", node->next->string);
+			//printf("%s\n", node->next->string);
 			string_llist_push_back(destination, node->next->string);
 		}
 

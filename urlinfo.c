@@ -27,7 +27,7 @@
  * 
  * Macros should always be used to extract info, because this pattern is likely to change
  */
-#define URL_REGEX "(//)?(.+://)?([^/\\.]\\.)?(.+?\\.(com|coop|edu|net|org|uk))?/?((\\.\\./)*)((([^/]+/)*)?([^/\\.]+\\.[^%]+)?[^&]+)?"
+#define URL_REGEX "(//)?(.+://)?([^/\\.]\\.)?(.+?\\.(com|coop|edu|net|org|uk))?/?((\\.\\./)*)((([^/]+/)*)?([^/\\.]+\\.[^%&]+)?[^%&]+)?"
 #define URL_REGEX_NUM_SUBSTRINGS 12
 #define URL_REGEX_DOMAIN 4
 #define URL_REGEX_UP_FOLDER 6
