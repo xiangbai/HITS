@@ -38,6 +38,7 @@ urlinfo *getparts(char *string)
 
 int main(void)
 {
+	getparts("ican.hascheez.com/tags/dogs");
 	getparts("yep.net/path/path2/test.html");
 	getparts("google.com/index.html");
 	getparts("test.php");

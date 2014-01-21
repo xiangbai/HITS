@@ -33,11 +33,6 @@ typedef struct string_llist {
 void string_llist_init(string_llist *list);
 
 /*
- * Free contents of linked list and the list itself
- */
-void string_llist_free(string_llist *list);
-
-/*
  * Push a string to the front of the linked list
  */
 void string_llist_push_front(string_llist *list, char *string);
@@ -78,5 +73,18 @@ void string_llist_printforward(string_llist *list);
  * Prints to stdout, one element per line.
  */
 void string_llist_printbackward(string_llist *list);
+
+/*
+ * Free a string_llist
+ * This frees all string_nodes
+ * NOTE: This does not free associated strings themselves
+ */
+void string_llist_free(string_llist *list);
+
+/*
+ * Free a string_llist and associated strings
+ * NOTE: This works like string_llist_free, except it frees the strings as well
+ */
+void string_llist_free_all(string_llist *list);
 
 #endif

@@ -98,3 +98,36 @@ urlinfo *url_llist_pop_back(url_llist *list)
 	return url;
 }
 
+void url_llist_free(url_llist *list)
+{
+	url_node *current = list->front;
+	url_node *next;
+	
+	// traverse list, removing and freeing url_nodes
+	while (current)
+	{
+		next = current->next;
+		free(current);
+		current = next;
+	}
+	
+	// list itself is not freed, as it may be on the stack
+}
+
+void url_llist_free_all(url_llist *list)
+{
+	url_node *current = list->front;
+	url_node *next;
+	
+	// traverse list, removing and freeing url_nodes
+	while (current)
+	{
+		next = current->next;
+		free(current->url);
+		free(current);
+		current = next;
+	}
+
+	// free list
+	free(list);
+}

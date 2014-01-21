@@ -16,16 +16,22 @@ typedef struct urlinfo
 	char *path;
 	char *filename;
 	int searchdepth;
+	int redirectdepth;
 	struct urlinfo *next;
     double hubScore;
     double authScore;
 } urlinfo;
 
 /*
- * construct a url
+ * construct a url from link
  * if givenAddress is a relative address, currentURL be non-null and contain a domain in host
  */
-urlinfo *makeURL(char *givenAddress, urlinfo *currentURL);
+urlinfo *makeURLfromlink(char *givenAddress, urlinfo *currentURL);
+
+/*
+ * construct a url using redirect location from 3xx error
+ */
+urlinfo *makeURLfromredirect(char *givenAddress, urlinfo *currentURL);
 
 /*
  * returns url as a c-style string

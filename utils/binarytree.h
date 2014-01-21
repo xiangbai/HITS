@@ -31,6 +31,12 @@ typedef struct btree
 void btree_init(btree *tree, int (*comparefunction)(void *a, void *b));
 
 /*
+ * Free a binary tree
+ * if free_pointers != 0, data pointed to by nodes will be removed
+ */
+void btree_free(btree *tree, int free_pointers);
+
+/*
  * Insert an object into the tree
  */
 void btree_insert(btree *tree, void *data);//, int (*comparefunction)(void *a, void *b));

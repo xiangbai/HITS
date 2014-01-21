@@ -12,18 +12,22 @@
  * more substrings are returned than desired, because parentheses are also part of regex syntax
  * assume output[] is returned by parser.substrings_to_array(), which uses pcre
  * output[0]: string matching the entire string
- * output[1]: domain
- * output[2]: domain extension
- * output[3]: a sequence of 0 or more "../", indicating how many folders to go up
- * output[4]: the last instance of "../" if it exists
- * output[5]: the path and filename following the domain and any instances of "../"
+ * output[1]: "//" - indicates to use the same scheme as used for the current site
+ * output[2]: scheme: https, https
+ * output[3]: 
+ * output[4]: domain
+ * output[5]: domain extension
+ * output[6]: a sequence of 0 or more "../", indicating how many folders to go up
+ * output[7]: the last instance of "../" if it exists
+ * output[8]: the path and filename following the domain and any instances of "../"
 		functions as the path for relative paths with no filename and not ending in '/'
- * output[6]: path, assuming there is a filename, or the path ends in '/'
- * output[7]: filename
+ * output[9]: path, assuming there is a filename, or the path ends in '/'
+ * output[10]: last folder in path
+ * output[11]: filename (excludes % and anything after - google uses this)
  * 
  * Macros should always be used to extract info, because this pattern is likely to change
  */
-#define URL_REGEX "(//)?(.+://)?([^/\\.]\\.)?(.+?\\.(com|coop|edu|net|org|uk))?/?((\\.\\./)*)((([^/]+/)*)?([^/\\.]+\\..+)?)?"
+#define URL_REGEX "(//)?(.+://)?([^/\\.]\\.)?(.+?\\.(com|coop|edu|net|org|uk))?/?((\\.\\./)*)((([^/]+/)*)?([^/\\.]+\\.[^%&]+)?[^%&]+)?"
 #define URL_REGEX_NUM_SUBSTRINGS 12
 #define URL_REGEX_DOMAIN 4
 #define URL_REGEX_UP_FOLDER 6
@@ -31,9 +35,32 @@
 #define URL_REGEX_PATH2 8
 #define URL_REGEX_FILE 11
 
+urlinfo *makeURL(char *givenAddress, urlinfo *currentURL);
+
 // Regex pattern to be used. Initialize once
 parser *regex = NULL;
 
+urlinfo *makeURLfromlink(char *givenAddress, urlinfo *currentURL)
+{
+	urlinfo *newurl = makeURL(givenAddress, currentURL);
+	
+	newurl->searchdepth = (currentURL)? currentURL->searchdepth + 1: 0;
+	newurl->redirectdepth = currentURL->redirectdepth;
+	
+	return newurl;
+}
+
+urlinfo *makeURLfromredirect(char *givenAddress, urlinfo *currentURL)
+{
+	urlinfo *newurl = makeURL(givenAddress, currentURL);
+
+	newurl->searchdepth = (currentURL)? currentURL->searchdepth: 0;
+	newurl->redirectdepth = currentURL->redirectdepth + 1;
+	
+	return newurl;
+}
+
+// function used by makeURLfromlink and makeURLfromredirect
 urlinfo *makeURL(char *givenAddress, urlinfo *currentURL)
 {
 	urlinfo *newurl = NULL;
@@ -71,15 +98,22 @@ urlinfo *makeURL(char *givenAddress, urlinfo *currentURL)
 		 * 	remove '/' if this pathtype was found
 		 */
 		int pathlen = strlen(array[URL_REGEX_PATH]);
+		int filelen = strlen(array[URL_REGEX_FILE]);
 		if (pathlen)
 			array[URL_REGEX_PATH][pathlen - 1] = '\0';
 
 		// get the path from the given address;
 		char *newpath;
-		if (!pathlen && strcmp(array[URL_REGEX_PATH2], array[URL_REGEX_FILE]))
+		if (!filelen)//!pathlen && strcmp(array[URL_REGEX_PATH2], array[URL_REGEX_FILE]))
+		{
+			//if (array[URL_REGEX_PATH2][filelen - 1] == '/')
+			//	array[URL_REGEX_PATH2][filelen - 1] = '\0';
 			newpath = array[URL_REGEX_PATH2];
+		}
 		else
+		{
 			newpath = array[URL_REGEX_PATH];
+		}
 
 		// set the filename
 		newurl->filename = array[URL_REGEX_FILE];
@@ -144,8 +178,6 @@ urlinfo *makeURL(char *givenAddress, urlinfo *currentURL)
 			newurl->path = path;
 		}
 	}
-
-	newurl->searchdepth = (currentURL)? currentURL->searchdepth + 1: 0;
 	
 	return newurl;	
 }
@@ -210,7 +242,6 @@ urlinfo *freeURL(urlinfo *url)
 	free(url->path);
 	free(url->filename);
 	free(url);
-
 	return next;
 }
 
