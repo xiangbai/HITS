@@ -124,7 +124,6 @@ void *llist_find(llist *list, void *obj)//, int (*equalsfunction)(void *a, void 
 	while (current)
 	{
 		// mark as found and break if lnode.data == obj
-		//if ((*equalsfunction)(current->data, obj))
 		if (list->equalsfunction(current->data, obj))
 		{
 			output = current->data;

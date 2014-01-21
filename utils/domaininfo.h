@@ -3,6 +3,7 @@
 
 #include "llist.h"
 #include "stdlib.h"
+#include "../urlinfo.h"
 
 /***************************************
  * domaininfo.h

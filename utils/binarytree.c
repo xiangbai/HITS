@@ -30,35 +30,34 @@ void btree_init(btree *tree, int (*comparefunction)(void *a, void *b))
 
 void btree_free(btree *tree, int free_pointers)
 {
-	treenode *current = tree->root;
-	treenode *next;
-
+	treenode *node = tree->root;
+	treenode *prevnode;
+	void *data;
+	
 	// get the left-most node
-	while (current->left)
-		current = current->left;
-	// add all elements to the array
-	while (current)
+	while (node->left)
+		node = node->left;
+	
+	// traverse linked list in order
+	while (node)
 	{
-		// find next
-        	if (current->rightthread)
-        	    next = current->right;
+		prevnode = node;
+		
+        	if (node->rightthread)
+        	    node = node->right;
         	else
         	{
-        	    next = current->right;
-        	    while(!next->leftthread)
-        	        next = next->left;
+        	    node = node->right;
+        	    while(!node->leftthread)
+        	        node = node->left;
         	}
+		// free node
+		data = killtreenode(prevnode);
 		
-		// remove next
+		// free data if desired
 		if (free_pointers)
-			free(current->data);
-		free(current);
-		
-		// set current = next
-		current = next;
+			free(data);
 	}
-	
-	// btree itself isn't freed, as it may be on stack
 }
 
 void btree_insert(btree *tree, void *data)//, int (*comparefunction)(void *a, void *b))
@@ -257,16 +256,16 @@ void *btree_remove(btree *tree, void *data)//, int (*comparefunction)(void *a, v
 	return output;
 }
 
-void *btree_find(btree *tree, void *data)//, int(*comparefunction)(void *a, void *b))
+void *btree_find(btree *tree, void *data)
 {
 	treenode *current = tree->root;
+	
 	// traverse tree until data is found
 	if (tree->root)	
 		while (1)
 		{
 			int compare = tree->comparefunction(data, current->data);
             
-			//printf("compare value in btree_find: %d, ", compare);
 			if (!compare)
 			{	// found
 				break;

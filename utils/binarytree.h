@@ -31,8 +31,9 @@ typedef struct btree
 void btree_init(btree *tree, int (*comparefunction)(void *a, void *b));
 
 /*
- * Free a binary tree
- * if free_pointers != 0, data pointed to by nodes will be removed
+ * Free the lnodes of a btree
+ * if free_pointers != 0 the data pointed to by the btree will be freed as well
+ * btree itself must be freed externally if it is in the heap
  */
 void btree_free(btree *tree, int free_pointers);
 

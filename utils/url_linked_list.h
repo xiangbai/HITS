@@ -14,7 +14,7 @@
 
 // struct url_node for internal use
 typedef struct url_node {
-	urlinfo *url;
+	struct urlinfo *url;
 	struct url_node *next;
 	struct url_node *prev;
 } url_node;
@@ -35,22 +35,22 @@ void url_llist_init(url_llist *list);
 /*
  * Push a url to the front of the linked list
  */
-void url_llist_push_front(url_llist *list, urlinfo *url);
+void url_llist_push_front(url_llist *list, struct urlinfo *url);
 
 /*
  * Push a url to the back of the linked list
  */
-void url_llist_push_back(url_llist *list, urlinfo *url);
+void url_llist_push_back(url_llist *list, struct urlinfo *url);
 
 /*
  * Pop from the front of the linked list
  */
-urlinfo *url_llist_pop_front(url_llist *list);
+struct urlinfo *url_llist_pop_front(url_llist *list);
 
 /*
  * Pop from the back of the linked list
  */
-urlinfo *url_llist_pop_back(url_llist *list);
+struct urlinfo *url_llist_pop_back(url_llist *list);
 
 /*
  * Free a url_llist

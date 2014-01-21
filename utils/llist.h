@@ -9,7 +9,6 @@
  * 	before use.
  ***************************************************************/
 
-#include "../urlinfo.h"
 #include <stdlib.h>
 
 // struct lnode for internal use

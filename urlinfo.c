@@ -1,6 +1,7 @@
 #include "urlinfo.h"
 #include "utils/general_utils.h"
 #include "utils/parser.h"
+#include "utils/llist.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,12 +43,12 @@ parser *regex = NULL;
 
 urlinfo *makeURLfromlink(char *givenAddress, urlinfo *currentURL)
 {
-	urlinfo *newurl = makeURL(givenAddress, currentURL);
-	
-	newurl->searchdepth = (currentURL)? currentURL->searchdepth + 1: 0;
-	newurl->redirectdepth = currentURL->redirectdepth;
-	
-	return newurl;
+        urlinfo *newurl = makeURL(givenAddress, currentURL);
+        
+        newurl->searchdepth = (currentURL)? currentURL->searchdepth + 1: 0;
+        newurl->redirectdepth = currentURL->redirectdepth;
+        
+        return newurl;
 }
 
 urlinfo *makeURLfromredirect(char *givenAddress, urlinfo *currentURL)
@@ -61,11 +62,22 @@ urlinfo *makeURLfromredirect(char *givenAddress, urlinfo *currentURL)
 }
 
 // function used by makeURLfromlink and makeURLfromredirect
+int urlcompare(urlinfo *a, urlinfo *b)
+{
+	int compare = strcmp(a->host, b->host);
+	if (compare)
+		return compare;
+	compare = strcmp(a->path, b->path);
+	if (compare)
+		return compare;
+	return strcmp(a->filename, b->filename);	
+}
+
 urlinfo *makeURL(char *givenAddress, urlinfo *currentURL)
 {
 	urlinfo *newurl = NULL;
 	int i;
-	
+
 	// make regex if it doesn't exist yet
 	if (regex == NULL)
 		regex = init_parser(URL_REGEX);
@@ -179,6 +191,9 @@ urlinfo *makeURL(char *givenAddress, urlinfo *currentURL)
 		}
 	}
 	
+	// make linked list of outgoing links
+	llist_init(&newurl->outlinks, (void *)urlcompare);
+	
 	return newurl;	
 }
 
@@ -243,15 +258,4 @@ urlinfo *freeURL(urlinfo *url)
 	free(url->filename);
 	free(url);
 	return next;
-}
-
-int urlcompare(urlinfo *a, urlinfo *b)
-{
-	int compare = strcmp(a->host, b->host);
-	if (compare)
-		return compare;
-	compare = strcmp(a->path, b->path);
-	if (compare)
-		return compare;
-	return strcmp(a->filename, b->filename);	
 }
