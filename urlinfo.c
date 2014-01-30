@@ -1,4 +1,5 @@
 #include "urlinfo.h"
+#include "utils/string_linked_list.h"
 #include "utils/general_utils.h"
 #include "utils/parser.h"
 #include "utils/llist.h"
@@ -40,6 +41,38 @@ urlinfo *makeURL(char *givenAddress, urlinfo *currentURL);
 
 // Regex pattern to be used. Initialize once
 parser *regex = NULL;
+
+int compare_redirects(string_redirect *a, string_redirect *b)
+{
+	return strcmp(a->bad_link, b->bad_link);
+}
+
+url_w_string_links *url_w_links_init(urlinfo *url)
+{
+	url_w_string_links *output = malloc(sizeof(url_w_string_links));
+	output->url = url;
+	string_llist_init(&output->outlinks);
+	return output;
+}
+
+void url_w_links_free(url_w_string_links *url, int free_pointers)
+{
+	string_llist_free(&url->outlinks);
+}
+
+string_redirect *redirect_init(char *bad_link, urlinfo *valid_url)
+{
+	string_redirect *output = malloc(sizeof(string_redirect));
+	output->bad_link = malloc((strlen(bad_link)+1) * sizeof(char));
+	strcpy(output->bad_link, bad_link);
+	output->valid_url = valid_url;
+	return output;
+}
+
+void redirect_free(string_redirect *redirect)
+{
+	free(redirect->bad_link);
+}
 
 urlinfo *makeURLfromlink(char *givenAddress, urlinfo *currentURL)
 {
