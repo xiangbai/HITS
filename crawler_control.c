@@ -14,6 +14,7 @@
 #include "utils/binarytree.h"
 
 #define BUFFER_SIZE 1024
+#define PORT_80 "80"
 
 //userAgents randomly selected for http requests to avoid getting blocked by google
 char *userAgents[9] =
@@ -35,6 +36,7 @@ void formatSearchRequest(urlinfo *url, char *request);
 void getUserSearchQuery(char *path);
 void incrementResultsRequest(char *path, char *clone, int start, int numResults);
 string_llist *get_base_graph(char *request, char *port_string, parser *regexparser, urlinfo *searchURL);
+void link_outlinks(llist *urltable, btree *all_links, btree *redirects);
 
 /* main routine for testing our crawler's funcitonality */
 int main(int argc, char **argv)
@@ -48,12 +50,14 @@ int main(int argc, char **argv)
 	url_llist linkstocheck;		// queue of urls to check
 	btree domains;			// tree of domains, so we can limit how many pages per domain
 	btree linksfound;		// for quick finding so we don't add redunant urls to linkstocheck
+	btree redirects;		// holds string_redirects
 	
 	urlinfo *newURL = NULL;
 	urlinfo seedURL;
 	
 	char port_string[3];
-	sprintf(port_string, "%d", port);
+	strcpy(port_string, PORT_80);
+	//sprintf(port_string, "%d", port);
 
 	// initialize parser
 	regexparser = init_parser(pattern);
@@ -62,7 +66,8 @@ int main(int argc, char **argv)
 	url_llist_init(&linkstocheck);
 	btree_init(&domains, (void *)&compare_domain_name);
 	btree_init(&linksfound, (void *)&urlcompare);
-
+	btree_init(&redirects, (void *)&compare_redirects);
+	
 	//seed list
 	if (argc > 1)
 		seedURL.host = argv[1];
@@ -108,7 +113,8 @@ int main(int argc, char **argv)
 			break;
 		
 		// convert port# to string
-		sprintf(port_string, "%d", port);
+		strcpy(port_string, PORT_80);
+		//sprintf(port_string, "%d", port);
 		
 		newURL = url_llist_pop_front(&linkstocheck);
 		
@@ -251,6 +257,45 @@ int main(int argc, char **argv)
 	return 0;
 }
 
+void link_outlinks(llist *urltable, btree *all_links, btree *redirects)
+{
+	// iterate through each urlinfo
+	lnode *current_url_node = urltable->front;
+	while (current_url_node)
+	{
+		url_w_string_links *current_url = (url_w_string_links *)current_url_node->data;
+		
+		// iterate through each url string in each urlinfo
+		lnode *current_outlink_node = (lnode *)current_url->outlinks.front;
+		while (current_outlink_node)
+		{
+			char *string_link = (char *)current_outlink_node->data;
+			
+			// construct dummy urlinfo and see if it is in all links
+			urlinfo *desired_url = (urlinfo *)makeURLfromlink(string_link, NULL);
+			urlinfo *found_url = (urlinfo *)btree_find(all_links, desired_url);
+			
+			// if found, link url to it
+			if (found_url)
+				llist_push_back(&current_url->url->outlinks, found_url);
+			else
+			{
+				// construct dummy string_redirect and find it in redirects
+				url_w_string_links *desired_redirect = (url_w_string_links *)redirect_init(string_link, NULL);
+				url_w_string_links *found_redirect = (url_w_string_links *)btree_find(redirects, desired_redirect);
+				
+				if (found_redirect)
+					llist_push_back(&current_url->url->outlinks, found_redirect->url);
+				
+			}
+			
+			free (desired_url);
+			
+			current_outlink_node = current_outlink_node->next;
+		}
+		current_url_node = current_url_node->next;
+	}
+}
 
 void getRequest(urlinfo *url, char *request)
 {
