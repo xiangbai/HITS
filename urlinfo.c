@@ -47,6 +47,13 @@ int compare_redirects(string_redirect *a, string_redirect *b)
 	return strcmp(a->bad_link, b->bad_link);
 }
 
+int equals_url_w_string_links(url_w_string_links *a, url_w_string_links *b)
+{
+    if (urlcompare(a->url,b->url))
+        return 0;
+    return 1;
+}
+
 url_w_string_links *url_w_links_init(urlinfo *url)
 {
 	url_w_string_links *output = malloc(sizeof(url_w_string_links));

@@ -40,6 +40,11 @@ typedef struct url_w_string_links
 } url_w_string_links;
 
 /*
+ * Equals function for url_w_string_links. Compares the urls.
+ */
+int equals_url_w_string_links(url_w_string_links *a, url_w_string_links *b);
+
+/*
  * Initialise a url_w_string_links
  */
 url_w_string_links *url_w_links_init(urlinfo *url);

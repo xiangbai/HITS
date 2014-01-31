@@ -24,6 +24,7 @@ void llist_free(llist *list, int free_pointers)
 		free(current);
 		current = next;
 	}
+    list->size = 0;
 }
 
 void llist_push_front(llist *list, void *data)
