@@ -12,6 +12,7 @@
 
 #define HOST_LENGTH 128
 #define PATH_LENGTH 2048
+#define MAX_REDIRECT_DEPTH 4
 
 typedef struct urlinfo
 {
