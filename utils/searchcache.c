@@ -99,7 +99,7 @@ url_llist *getcache(char *folder, char *searchstring)
 	while(fscanf(file, "%s %d\n", urlstring, &numoutlinks) != EOF)
 	{
 		// construct url (without outlinks)
-		url = makeURL(urlstring, NULL);
+		url = makeURLfromlink(urlstring, NULL);
 		
 		// push url and a linked list for its outlinks
 		url_llist_push_back(output, url);
@@ -137,7 +137,7 @@ url_llist *getcache(char *folder, char *searchstring)
 	}
 	free(path);
 	free(modifiedstring);
-	close(file);
+	fclose(file);
 	
 	return output;	
 }
@@ -146,7 +146,6 @@ void setcache(char *folder, char *searchstring, url_llist *urls)
 {
 	long i, j;
 	urlinfo *url;
-	indexed_url *iurl;
 	url_node *node = urls->front;
 	btree indexed_urls;
 	btree_init(&indexed_urls, (void *)indexed_urlcompare);
@@ -208,5 +207,5 @@ void setcache(char *folder, char *searchstring, url_llist *urls)
 	btree_free(&indexed_urls, 1);
 	free(modifiedsearch);
 	free(path);
-	close(file);
+	fclose(file);
 }

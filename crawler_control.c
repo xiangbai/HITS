@@ -59,11 +59,11 @@ int main()
 	regexparser = init_parser(pattern);
     
     // Declare structures for link processing
-    llist urltable;             // llist of url_w_string_list
+	llist urltable;             // llist of url_w_string_list
 	btree linksfound;           // for quick finding so we don't add redunant urls to linkstocheck
 	btree redirects;            // holds string_redirects
-    url_llist redir_stack;      // holds redirected urls
-    string_llist backlinks;     // holds backlinks of urls as strings
+	url_llist redir_stack;      // holds redirected urls
+	string_llist backlinks;     // holds backlinks of urls as strings
 	
 	// Initialize structures
     llist_init(&urltable, (void *)&equals_url_w_string_links);
@@ -120,6 +120,8 @@ int main()
     
     /***** Free Structures *****/
     //TODO
+	
+	return 0;
 }
 
 /*
@@ -128,6 +130,8 @@ int main()
  */
 void link_outlinks(llist *urltable, btree *all_links, btree *redirects)
 {
+	char string_link[BUFFER_SIZE];
+
 	// iterate through each urlinfo
 	lnode *current_url_node = urltable->front;
 	while (current_url_node)
@@ -135,10 +139,9 @@ void link_outlinks(llist *urltable, btree *all_links, btree *redirects)
 		url_w_string_links *current_url = (url_w_string_links *)current_url_node->data;
 		
 		// iterate through each url string in each urlinfo
-		lnode *current_outlink_node = (lnode *)current_url->outlinks.front;
-		while (current_outlink_node)
+		while(current_url->outlinks.size)
 		{
-			char *string_link = (char *)current_outlink_node->data;
+			string_llist_pop_front(&current_url->outlinks, string_link);
 			
 			// construct dummy urlinfo and see if it is in all links
 			urlinfo *desired_url = (urlinfo *)makeURLfromlink(string_link, NULL);
@@ -153,13 +156,12 @@ void link_outlinks(llist *urltable, btree *all_links, btree *redirects)
 				string_redirect *desired_redirect = (string_redirect  *)redirect_init(string_link, NULL);
 				string_redirect *found_redirect = (string_redirect  *)btree_find(redirects, desired_redirect);
 				
-                redirect_free(desired_redirect);
+				redirect_free(desired_redirect);
                 
 				if (found_redirect)
 					llist_push_back(&current_url->url->outlinks, found_redirect->valid_url);
 			}
 			freeURL(desired_url);
-			current_outlink_node = current_outlink_node->next;
 		}
 		current_url_node = current_url_node->next;
 	}
@@ -430,6 +432,28 @@ void getUserSearchQuery(char *path, char *save_query)
         report_error("getUserSearchQuery failed");
 }
 
+/* 
+ * Construct string_redirects from a url_llist of urls that redirect to a valid url
+ * These are then pushed to the btree holding redirects
+ * 
+ * *redir_tree - Tree to insert redirects into
+ * *redir_stack - Linked list holding urls that are redirected
+ * *valid_url - url that everything in redir_stack is redirected to
+ */ 
+void add_links_to_redirect_tree(btree *redir_tree, url_llist *redir_stack, urlinfo *valid_url)
+{
+      urlinfo *temp = (urlinfo*)url_llist_pop_front(redir_stack);
+      struct string_redirect *good_bad;
+      while (redir_stack->size)
+      {
+          good_bad = redirect_init(url_tostring(temp), valid_url);
+          btree_insert(redir_tree, good_bad);
+          freeURL(temp);
+          temp = (urlinfo*)url_llist_pop_front(redir_stack);
+      }
+
+}
+
 /*
  * This function uses: request, port_string, and regexparser to attemp to
  * connect to cur_url and download the links as strings. If a redirect occurs
@@ -506,20 +530,10 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
             //insert into all_links btree
             btree_insert(all_links, cur_url);
             
-            //insert into redir_links btree if necessary and free links
-            urlinfo *temp = ((urlinfo*)url_llist_pop_front(redir_stack));
-            urlinfo *previous = temp;
-            struct string_redirect *good_bad;
-            while (redir_stack->size)
-            {
-                good_bad = redirect_init(url_tostring(temp), cur_url);
-                btree_insert(redir_tree, good_bad);
-                previous = temp;
-                temp = temp->next;
-                freeURL(previous);
-                redir_stack->size--;
-            }
-            free(code);
+            // insert into redir_links btree if necessary and free links
+	    add_links_to_redirect_tree(redir_tree, redir_stack, cur_url);
+            
+	    free(code);
             return 1;
         }//END CASE 1
         
@@ -549,18 +563,7 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
                 freeURL(url_from_redirect); //duplicate url so we need to free it
                 
                 //insert into redir_links btree if necessary and free links
-                urlinfo *temp = ((urlinfo*)url_llist_pop_front(redir_stack));
-                urlinfo *previous = temp;
-                struct string_redirect *good_bad;
-                while (redir_stack->size)
-                {
-                    good_bad = redirect_init(url_tostring(temp), url_from_all_links);
-                    btree_insert(redir_tree, good_bad);
-                    previous = temp;
-                    temp = temp->next;
-                    freeURL(previous);
-                    redir_stack->size--;
-                }
+	        add_links_to_redirect_tree(redir_tree, redir_stack, cur_url);
                 free(redirect_url_string);
                 free(code);
                 return 2;
@@ -636,8 +639,8 @@ void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, u
     {
         
         // iterate through each url string in each urlinfo and validate
-		lnode *current_outlink_node = (lnode *)current_url->outlinks.front;
-		while (current_outlink_node)
+	lnode *current_outlink_node = (lnode *)current_url->outlinks.front;
+	while (current_outlink_node)
         {
             char *string_link = (char *)current_url->outlinks.front;
             
@@ -672,6 +675,7 @@ void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, u
         get_back_links(search_engine, current_url->url, port_string, request, regexparser, all_links, destination);
         
 		current_url_node = current_url_node->next;
+    		url_w_string_links *current_url = (url_w_string_links *)current_url_node->data;
     }
 }
 
