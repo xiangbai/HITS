@@ -632,10 +632,11 @@ void validate_url_string_list(urlinfo origin_url, string_llist *links_in_search,
  */
 void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, url_llist *redir_stack, btree *redir_tree, llist *urltable, char *request, char *port_string, parser *regexparser, string_llist *destination)
 {
+
     lnode *current_url_node = urltable->front;
     url_w_string_links *current_url = (url_w_string_links *)current_url_node->data;
     //iterate through the root set in the urltable
-    while(current_url_node && current_url->url->searchdepth == 0)
+    while(current_url_node && current_url->url->searchdepth == 1)
     {
         
         // iterate through each url string in each urlinfo and validate
