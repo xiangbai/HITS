@@ -1,11 +1,9 @@
+#include "hits.h"
 #include "urlinfo.h"
 #include "utils/llist.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-
-void compute_hub_and_auth(urlinfo *urls[], int size, int iterations);
-void link_inlinks(urlinfo *urls[], int size);
 
 int main(int argc, char *argv[])
 {
