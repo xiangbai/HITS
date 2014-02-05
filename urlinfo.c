@@ -86,7 +86,7 @@ urlinfo *makeURLfromlink(char *givenAddress, urlinfo *currentURL)
         urlinfo *newurl = makeURL(givenAddress, currentURL);
         
         newurl->searchdepth = (currentURL)? currentURL->searchdepth + 1: 0;
-        newurl->redirectdepth = currentURL->redirectdepth;
+        newurl->redirectdepth = (currentURL)? currentURL->redirectdepth: 0;
         
         return newurl;
 }
@@ -231,9 +231,10 @@ urlinfo *makeURL(char *givenAddress, urlinfo *currentURL)
 		}
 	}
 	
-	// make linked list of outgoing links
+	// make linked list of outgoing links and incoming links
 	llist_init(&newurl->outlinks, (void *)urlcompare);
-	
+	llist_init(&newurl->inlinks, (void *)urlcompare);
+		
 	return newurl;	
 }
 

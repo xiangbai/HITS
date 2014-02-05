@@ -23,6 +23,7 @@ typedef struct urlinfo
 	int redirectdepth;
 	struct urlinfo *next;
 	llist outlinks;
+	llist inlinks;
 	double hubScore;
 	double authScore;
 } urlinfo;
