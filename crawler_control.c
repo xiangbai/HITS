@@ -250,7 +250,6 @@ char *loadPage(int socket)
 		buffer[BUFFER_SIZE - 1] = '\0';
         string_llist_push_back(&list, buffer);
     } while (bytes_received);
-	
 	// allocate enough space to store code in linked list (and null char)
     char *code = (char *) malloc((list.num_chars + 1) * sizeof(char));
     
@@ -506,8 +505,6 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
         
         // test if the page loaded properly
         int statuscode = get_status_code(code);
-        puts("a");
-        
         
         //CASE 1: We have a successful GET request. URL is valid. Insert into all_links and
         //insert any required redirect entries into the redirect tree
@@ -531,9 +528,9 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
             btree_insert(all_links, cur_url);
             
             // insert into redir_links btree if necessary and free links
-	    add_links_to_redirect_tree(redir_tree, redir_stack, cur_url);
+			add_links_to_redirect_tree(redir_tree, redir_stack, cur_url);
             
-	    free(code);
+			free(code);
             return 1;
         }//END CASE 1
         
@@ -563,7 +560,7 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
                 freeURL(url_from_redirect); //duplicate url so we need to free it
                 
                 //insert into redir_links btree if necessary and free links
-	        add_links_to_redirect_tree(redir_tree, redir_stack, cur_url);
+	        	add_links_to_redirect_tree(redir_tree, redir_stack, cur_url);
                 free(redirect_url_string);
                 free(code);
                 return 2;
@@ -574,11 +571,14 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
             else
             {
                 //free unnecessary stuff before recursive call so we don't have excess memory build-up
-                free(redirect_url_string);
-                free(code);
+				free(redirect_url_string);
+                
+				free(code);
+				
                 int ret_val = validate_url_and_populate(url_from_redirect, redir_stack, all_links, redir_tree,
                                                         urls_w_strings_list, request,port_string, regexparser);
-                return ret_val;
+				
+				return ret_val;
             }//END CASE 2b
         } //END CASE 2
         
@@ -586,7 +586,8 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
         else
         {
             free(code);
-            url_llist_free_all(redir_stack); // free stack
+			if (redir_stack && redir_stack->size)
+            	url_llist_free_all(redir_stack); // free stack
             return 0;
         }//END CASE 3
         
