@@ -137,6 +137,7 @@ urlinfo *makeURL(char *givenAddress, urlinfo *currentURL)
 	{
 		// relative path, and no current url
 		report_error("No current url provided for relative path");
+		printf("address: %s\n", givenAddress);
 	}
 	else
 	{
@@ -231,10 +232,13 @@ urlinfo *makeURL(char *givenAddress, urlinfo *currentURL)
 		}
 	}
 	
-	// make linked list of outgoing links and incoming links
-	llist_init(&newurl->outlinks, (void *)urlcompare);
-	llist_init(&newurl->inlinks, (void *)urlcompare);
-		
+	if (newurl)
+	{
+		// make linked list of outgoing links and incoming links
+		llist_init(&newurl->outlinks, (void *)urlcompare);
+		llist_init(&newurl->inlinks, (void *)urlcompare);
+	}
+	
 	return newurl;	
 }
 

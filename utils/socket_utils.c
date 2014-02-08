@@ -22,10 +22,14 @@ int connect_socket(char *host_string, char *port_string, FILE *stream)
 	// get list of addresses
 	struct addrinfo *address_list;
 	int val = getaddrinfo(host_string, port_string, &addr_criteria, &address_list);
+	
+	// if error, notify user and return -1
 	if (val)
 	{
 		printf("Error w/ host [%s]\n", host_string);
 		report_error("error in getaddrinfo()");
+		
+		return -1;
    	}
  
 	// traverse linked list

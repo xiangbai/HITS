@@ -130,6 +130,7 @@ int main()
  */
 void link_outlinks(llist *urltable, btree *all_links, btree *redirects)
 {
+	puts("Linking Outlinks!");
 	char string_link[BUFFER_SIZE];
 
 	// iterate through each urlinfo
@@ -152,6 +153,7 @@ void link_outlinks(llist *urltable, btree *all_links, btree *redirects)
 				llist_push_back(&current_url->url->outlinks, found_url);
 			else
 			{
+				
 				// construct dummy string_redirect and find it in redirects
 				string_redirect *desired_redirect = (string_redirect  *)redirect_init(string_link, NULL);
 				string_redirect *found_redirect = (string_redirect  *)btree_find(redirects, desired_redirect);
@@ -487,7 +489,7 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
     getRequest(cur_url, request);
     
     // notify user of url
-    printf("URL: %s %s %s\n", cur_url->host, cur_url->path, cur_url->filename);
+    printf("\nURL: %s %s %s\n", cur_url->host, cur_url->path, cur_url->filename);
     
     // create socket
     int socket = connect_socket(cur_url->host, port_string, stdout);
@@ -505,8 +507,9 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
         
         // test if the page loaded properly
         int statuscode = get_status_code(code);
+        printf("status code: %d\n", statuscode);
         
-        //CASE 1: We have a successful GET request. URL is valid. Insert into all_links and
+		//CASE 1: We have a successful GET request. URL is valid. Insert into all_links and
         //insert any required redirect entries into the redirect tree
         if (statuscode >= 200 && statuscode < 300) //success, URL is valid - populate structures!
         {
@@ -590,11 +593,14 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
             	url_llist_free_all(redir_stack); // free stack
             return 0;
         }//END CASE 3
-        
+		
+		// close socket
+    	close(socket);    
     }//end (socket>=0)
     else
         report_error("socket_connect() failed");
-    return -1;
+	
+	return -1;
 }
 
 /*
@@ -607,9 +613,12 @@ void validate_url_string_list(urlinfo origin_url, string_llist *links_in_search,
 	while (links_in_search->size)
 	{
 		string_llist_pop_front(links_in_search, link_in_search);
+		puts("making link in validate_url_string_list");
 		urlinfo *url_from_search = makeURLfromlink(link_in_search, &origin_url);
 		
-        if (btree_find(all_links, url_from_search)) //link already in all_links
+		if (!url_from_search)	// unable to construct url
+			continue;
+        else if (btree_find(all_links, url_from_search)) //link already in all_links
             freeURL(url_from_search);
         else
         {
@@ -639,15 +648,15 @@ void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, u
     //iterate through the root set in the urltable
     while(current_url_node && current_url->url->searchdepth == 1)
     {
-        
-        // iterate through each url string in each urlinfo and validate
-	lnode *current_outlink_node = (lnode *)current_url->outlinks.front;
-	while (current_outlink_node)
+		// iterate through each url string in each urlinfo and validate
+		lnode *current_outlink_node = (lnode *)current_url->outlinks.front;
+		while (current_outlink_node)
         {
-            char *string_link = (char *)current_url->outlinks.front;
+            char *string_link = (char *)current_outlink_node->data;
             
             // construct dummy urlinfo and see if it is in all links
-            urlinfo *desired_url = (urlinfo *)makeURLfromlink(string_link, NULL);
+			puts("making url in validate_outlinks_get_backlinks");
+            urlinfo *desired_url = (urlinfo *)makeURLfromlink(string_link, current_url->url);
             urlinfo *found_url = (urlinfo *)btree_find(all_links, desired_url);
             
             // if NOT found in all_links, check redir_tree
@@ -754,5 +763,6 @@ void get_back_links(urlinfo *engine, urlinfo *current_url, char *port_string, ch
         sprintf(error_msg,"unable to connect to engine: %s for backlink search on site: %s", engine->host, current_url->host);
         report_error(error_msg);
     }
+	close(socket);
 }
 
