@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <math.h>
 
+/*
 int main(int argc, char *argv[])
 {
 	urlinfo *a = makeURLfromlink("www.a.com", NULL);
@@ -28,6 +29,7 @@ int main(int argc, char *argv[])
 	
 	return 0;
 }
+*/
 
 void link_inlinks(urlinfo *urls[], int size)
 {

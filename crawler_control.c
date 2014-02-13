@@ -2,10 +2,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include "hits.h"
 #include "utils/domaininfo.h"
 #include "utils/string_linked_list.h"
 #include "utils/parser.h"
 #include "utils/general_utils.h"
+#include "utils/ranksort.h"
 #include "utils/socket_utils.h"
 #include "utils/status_code_util.h"
 #include "utils/url_linked_list.h"
@@ -92,6 +94,9 @@ int main()
     validate_url_string_list(search_engine, links_in_search, &redir_stack, &linksfound,
                              &redirects, &urltable, request, port_string, regexparser);
     
+	/*
+	TEMPORARILY DISABLE THE GETTING OF BACKLINKS
+
     //Validate and populate the outlinks of the root set and get potential backlinks from root set
     validate_outlinks_get_backlinks(&search_engine, &linksfound, &redir_stack, &redirects,
                                     &urltable, request,port_string, regexparser, &backlinks);
@@ -99,10 +104,13 @@ int main()
     //Validate backlinks and populate
     validate_url_string_list(search_engine, &backlinks, &redir_stack, &linksfound, &redirects,
                              &urltable, request, port_string, regexparser);
+    */
     
-    //Link outlinks of valid urls to valid urls
+	//Link outlinks of valid urls to valid urls
     link_outlinks(&urltable, &linksfound, &redirects);
-    
+   
+	puts("linked!");
+ 
     /***** Export graph *****/
     char path[] = "searches"; //folder for export
     
@@ -117,7 +125,34 @@ int main()
     
     // Save Data
     setcache(path, search_string, &super_set_list);
-    
+   
+	/* DEMO: this should be moved out of crawler_control eventually */
+	
+	// run hits
+	int num_links = linksfound.numElems;
+	int arbitrary_num_iterations = 10;
+	
+	// run HITS
+	puts("linking inlinks");
+	link_inlinks(super_set_array, num_links);
+	puts("running hits");	
+	compute_hub_and_auth(super_set_array, num_links, arbitrary_num_iterations);
+	
+	// sort
+	puts("sorting..");
+	rank_sort(super_set_array, num_links);
+
+	// display
+	printf("----------------------\n The results are in\n----------------------\n");
+	printf("score\turl\n");
+	for (i = num_links - 1; i >= 0; i--)
+	{
+		char *url_name = url_tostring(super_set_array[i]);
+		printf("%lf\t%s\n", super_set_array[i]->authScore, url_name);
+		free(url_name);
+	}
+	/* END DEMO */
+	 
     /***** Free Structures *****/
     //TODO
 	
@@ -145,7 +180,8 @@ void link_outlinks(llist *urltable, btree *all_links, btree *redirects)
 			string_llist_pop_front(&current_url->outlinks, string_link);
 			
 			// construct dummy urlinfo and see if it is in all links
-			urlinfo *desired_url = (urlinfo *)makeURLfromlink(string_link, NULL);
+			
+			urlinfo *desired_url = (urlinfo *)makeURLfromlink(string_link, current_url->url);
 			urlinfo *found_url = (urlinfo *)btree_find(all_links, desired_url);
 			
 			// if found, link url to it

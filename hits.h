@@ -5,6 +5,8 @@
  * This could be updated to use Eigenvectors for increased performance/accuracy
  *********************************************************************************************/
 
+#include "urlinfo.h"
+
 /*
  * Compute hub and authority scores for each url.
  * Assumes inlinks and outlinks of each url only point to other urls in the array.
