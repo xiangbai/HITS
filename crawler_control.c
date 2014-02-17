@@ -95,22 +95,22 @@ int main()
                              &redirects, &urltable, request, port_string, regexparser);
     
 	/*
-	TEMPORARILY DISABLE THE GETTING OF BACKLINKS
-
-    //Validate and populate the outlinks of the root set and get potential backlinks from root set
-    validate_outlinks_get_backlinks(&search_engine, &linksfound, &redir_stack, &redirects,
-                                    &urltable, request,port_string, regexparser, &backlinks);
-
-    //Validate backlinks and populate
-    validate_url_string_list(search_engine, &backlinks, &redir_stack, &linksfound, &redirects,
-                             &urltable, request, port_string, regexparser);
-    */
+	 TEMPORARILY DISABLE THE GETTING OF BACKLINKS
+	 
+	 //Validate and populate the outlinks of the root set and get potential backlinks from root set
+	 validate_outlinks_get_backlinks(&search_engine, &linksfound, &redir_stack, &redirects,
+	 &urltable, request,port_string, regexparser, &backlinks);
+	 
+	 //Validate backlinks and populate
+	 validate_url_string_list(search_engine, &backlinks, &redir_stack, &linksfound, &redirects,
+	 &urltable, request, port_string, regexparser);
+	 */
     
 	//Link outlinks of valid urls to valid urls
     link_outlinks(&urltable, &linksfound, &redirects);
-   
+	
 	puts("linked!");
- 
+	
     /***** Export graph *****/
     char path[] = "searches"; //folder for export
     
@@ -125,7 +125,7 @@ int main()
     
     // Save Data
     setcache(path, search_string, &super_set_list);
-   
+	
 	/* DEMO: this should be moved out of crawler_control eventually */
 	
 	// run hits
@@ -135,13 +135,13 @@ int main()
 	// run HITS
 	puts("linking inlinks");
 	link_inlinks(super_set_array, num_links);
-	puts("running hits");	
+	puts("running hits");
 	compute_hub_and_auth(super_set_array, num_links, arbitrary_num_iterations);
 	
 	// sort
 	puts("sorting..");
 	rank_sort(super_set_array, num_links);
-
+	
 	// display
 	printf("----------------------\n The results are in\n----------------------\n");
 	printf("score\turl\n");
@@ -152,7 +152,7 @@ int main()
 		free(url_name);
 	}
 	/* END DEMO */
-	 
+	
     /***** Free Structures *****/
     //TODO
 	
@@ -167,7 +167,7 @@ void link_outlinks(llist *urltable, btree *all_links, btree *redirects)
 {
 	puts("Linking Outlinks!");
 	char string_link[BUFFER_SIZE];
-
+	
 	// iterate through each urlinfo
 	lnode *current_url_node = urltable->front;
 	while (current_url_node)
@@ -469,26 +469,26 @@ void getUserSearchQuery(char *path, char *save_query)
         report_error("getUserSearchQuery failed");
 }
 
-/* 
+/*
  * Construct string_redirects from a url_llist of urls that redirect to a valid url
  * These are then pushed to the btree holding redirects
- * 
+ *
  * *redir_tree - Tree to insert redirects into
  * *redir_stack - Linked list holding urls that are redirected
  * *valid_url - url that everything in redir_stack is redirected to
- */ 
+ */
 void add_links_to_redirect_tree(btree *redir_tree, url_llist *redir_stack, urlinfo *valid_url)
 {
-      urlinfo *temp = (urlinfo*)url_llist_pop_front(redir_stack);
-      struct string_redirect *good_bad;
-      while (redir_stack->size)
-      {
-          good_bad = redirect_init(url_tostring(temp), valid_url);
-          btree_insert(redir_tree, good_bad);
-          freeURL(temp);
-          temp = (urlinfo*)url_llist_pop_front(redir_stack);
-      }
-
+	urlinfo *temp = (urlinfo*)url_llist_pop_front(redir_stack);
+	struct string_redirect *good_bad;
+	while (redir_stack->size)
+	{
+		good_bad = redirect_init(url_tostring(temp), valid_url);
+		btree_insert(redir_tree, good_bad);
+		freeURL(temp);
+		temp = (urlinfo*)url_llist_pop_front(redir_stack);
+	}
+	
 }
 
 /*
@@ -625,13 +625,20 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
         else
         {
             free(code);
-			if (redir_stack && redir_stack->size)
-            	url_llist_free_all(redir_stack); // free stack
+			
+			//free URLs on redir_stack
+			urlinfo *temp_url;
+			while (redir_stack->size)
+			{
+				puts("popping and freeing redir_stack");
+            	temp_url = url_llist_pop_front(redir_stack);
+				freeURL(temp_url);
+			}
             return 0;
         }//END CASE 3
 		
 		// close socket
-    	close(socket);    
+    	close(socket);
     }//end (socket>=0)
     else
         report_error("socket_connect() failed");
@@ -678,7 +685,7 @@ void validate_url_string_list(urlinfo origin_url, string_llist *links_in_search,
  */
 void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, url_llist *redir_stack, btree *redir_tree, llist *urltable, char *request, char *port_string, parser *regexparser, string_llist *destination)
 {
-
+	
     lnode *current_url_node = urltable->front;
     url_w_string_links *current_url = (url_w_string_links *)current_url_node->data;
     //iterate through the root set in the urltable
@@ -722,7 +729,7 @@ void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, u
         get_back_links(search_engine, current_url->url, port_string, request, regexparser, all_links, destination);
         
 		current_url_node = current_url_node->next;
-    		url_w_string_links *current_url = (url_w_string_links *)current_url_node->data;
+		current_url = (url_w_string_links *)current_url_node->data;
     }
 }
 
