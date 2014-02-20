@@ -21,7 +21,7 @@
 
 //userAgents randomly selected for http requests to avoid getting blocked by google
 char *userAgents[9] =
-{"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36",
+{	"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9) AppleWebKit/537.71 (KHTML, like Gecko) Version/7.0 Safari/537.71",
     "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:25.0) Gecko/20100101 Firefox/25.0",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36",
@@ -46,6 +46,10 @@ void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, u
 void back_link_request(char *request, urlinfo *engine, urlinfo *url, int num_links);
 void get_back_links(urlinfo *search_engine, urlinfo *current_url, char *port_string, char *request, parser *regexparser, btree *all_links, string_llist *destination);
 
+//!is_intrinsic requires the global parser intrin_parser be initialized in main before being called
+int is_intrinsic(urlinfo *old_page, urlinfo *new_page);
+char intrin_pattern[] = "(\\w+)\\.\\w+$";
+parser *intrin_parser;
 
 /* main routine for testing our crawler's funcitonality */
 int main()
@@ -57,8 +61,9 @@ int main()
 	strcpy(port_string, PORT_80);
     char search_string[100];    //holds the user search query for autonaming save files
     
-	// initialize parser
+	// initialize parsers
 	regexparser = init_parser(pattern);
+	intrin_parser = init_parser(intrin_pattern);
     
     // Declare structures for link processing
 	llist urltable;             // llist of url_w_string_list
@@ -82,8 +87,20 @@ int main()
 	search_engine.searchdepth = 0;
     search_engine.searchdepth = 0;
     
-    
-    /***************************** Start alogorithm ********************************/
+    /*following for parser testing
+	 urlinfo testUrl1, testUrl2;
+	 testUrl1.host = "wikipedia.com";
+	 testUrl2.host = "en.tv.co.wikipediZ.org";
+	 
+	 
+	 if(is_intrinsic(&testUrl1, &testUrl2))
+	 printf("%s is intrinsic to %s", testUrl2.host, testUrl1.host);
+	 else
+	 printf("%s is NOT intrinsic to %s", testUrl2.host, testUrl1.host);
+	 */
+	
+	
+    //**************************** Start alogorithm ********************************
     
     //Get root set and put potential links in links_in_search
     string_llist *links_in_search;
@@ -94,13 +111,12 @@ int main()
     validate_url_string_list(search_engine, links_in_search, &redir_stack, &linksfound,
                              &redirects, &urltable, request, port_string, regexparser);
     
-	/*
-	 TEMPORARILY DISABLE THE GETTING OF BACKLINKS
-	 
-	 //Validate and populate the outlinks of the root set and get potential backlinks from root set
-	 validate_outlinks_get_backlinks(&search_engine, &linksfound, &redir_stack, &redirects,
-	 &urltable, request,port_string, regexparser, &backlinks);
-	 
+	//TEMPORARILY DISABLE THE GETTING OF BACKLINKS W/IN THIS FUNCTION
+	//Validate and populate the outlinks of the root set and get potential backlinks from root set
+	validate_outlinks_get_backlinks(&search_engine, &linksfound, &redir_stack, &redirects,
+									&urltable, request,port_string, regexparser, &backlinks);
+	
+	/*TEMPORARILY DISABLE THE ADDING OF BACKLINKS
 	 //Validate backlinks and populate
 	 validate_url_string_list(search_engine, &backlinks, &redir_stack, &linksfound, &redirects,
 	 &urltable, request, port_string, regexparser);
@@ -112,7 +128,8 @@ int main()
 	puts("linked!");
 	
     /***** Export graph *****/
-    char path[] = "searches"; //folder for export
+    
+	char path[] = "searches"; //folder for export
     
     // Convert: void btree -> urlinfo ** -> url_llist
     urlinfo **super_set_array = (urlinfo**)btree_toarray(&linksfound);
@@ -129,7 +146,7 @@ int main()
 	/* DEMO: this should be moved out of crawler_control eventually */
 	
 	// run hits
-	int num_links = linksfound.numElems;
+	int num_links = (int)linksfound.numElems;
 	int arbitrary_num_iterations = 10;
 	
 	// run HITS
@@ -151,6 +168,7 @@ int main()
 		printf("%lf\t%s\n", super_set_array[i]->authScore, url_name);
 		free(url_name);
 	}
+	
 	/* END DEMO */
 	
     /***** Free Structures *****/
@@ -336,9 +354,9 @@ string_llist *get_potential_root_set(char *request, char *port_string,
     
 	int socket;
     
-	int resultsPerPage = 100;
+	int resultsPerPage = 50;
 	int i;
-	for(i = 1; i < 100; i += resultsPerPage)
+	for(i = 1; i < 50; i += resultsPerPage)
 	{
         incrementResultsRequest(searchURL->path, pathclone, i, resultsPerPage);
         
@@ -461,6 +479,7 @@ void getUserSearchQuery(char *path, char *save_query)
             strcat(path, "+");
             strcat(save_query, "_");
             strcat(path, token);
+			strcat(save_query, token);
             token = strtok(NULL, delims);
         }
         strcat(path, "&safe=active");
@@ -525,10 +544,11 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
     getRequest(cur_url, request);
     
     // notify user of url
-    printf("\nURL: %s %s %s\n", cur_url->host, cur_url->path, cur_url->filename);
+    printf("\nURL: %s/%s%s\n", cur_url->host, cur_url->path, cur_url->filename);
     
     // create socket
     int socket = connect_socket(cur_url->host, port_string, stdout);
+	printf("Socket number is %d\n", socket);
     if (socket >= 0)
     {
         puts("connected");
@@ -570,6 +590,7 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
 			add_links_to_redirect_tree(redir_tree, redir_stack, cur_url);
             
 			free(code);
+			close(socket);
             return 1;
         }//END CASE 1
         
@@ -602,6 +623,7 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
 	        	add_links_to_redirect_tree(redir_tree, redir_stack, cur_url);
                 free(redirect_url_string);
                 free(code);
+				close(socket);
                 return 2;
             }//END CASE 2a
             
@@ -616,7 +638,7 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
 				
                 int ret_val = validate_url_and_populate(url_from_redirect, redir_stack, all_links, redir_tree,
                                                         urls_w_strings_list, request,port_string, regexparser);
-				
+				close(socket);
 				return ret_val;
             }//END CASE 2b
         } //END CASE 2
@@ -634,11 +656,10 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
             	temp_url = url_llist_pop_front(redir_stack);
 				freeURL(temp_url);
 			}
+			close(socket);
             return 0;
         }//END CASE 3
 		
-		// close socket
-    	close(socket);
     }//end (socket>=0)
     else
         report_error("socket_connect() failed");
@@ -685,7 +706,6 @@ void validate_url_string_list(urlinfo origin_url, string_llist *links_in_search,
  */
 void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, url_llist *redir_stack, btree *redir_tree, llist *urltable, char *request, char *port_string, parser *regexparser, string_llist *destination)
 {
-	
     lnode *current_url_node = urltable->front;
     url_w_string_links *current_url = (url_w_string_links *)current_url_node->data;
     //iterate through the root set in the urltable
@@ -698,35 +718,48 @@ void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, u
             char *string_link = (char *)current_outlink_node->data;
             
             // construct dummy urlinfo and see if it is in all links
-			puts("making url in validate_outlinks_get_backlinks");
             urlinfo *desired_url = (urlinfo *)makeURLfromlink(string_link, current_url->url);
             urlinfo *found_url = (urlinfo *)btree_find(all_links, desired_url);
+			printf("\nChecking outlink %s from url %s\n", url_tostring(desired_url), url_tostring(current_url->url));
             
-            // if NOT found in all_links, check redir_tree
-            if (!found_url)
-            {
-                // construct dummy string_redirect and find it in redirects
-                string_redirect *desired_redirect = (string_redirect *)redirect_init(string_link, NULL);
-                string_redirect *found_redirect = (string_redirect *)btree_find(redir_tree, desired_redirect);
-                
-                redirect_free(desired_redirect);
-                
-                //if NOT found in redir_tree
-                if (!found_redirect)
-                {
-                    validate_url_and_populate(desired_url, redir_stack, all_links, redir_tree, urltable, request, port_string, regexparser);
-                }
-                else
-                    freeURL(desired_url);
-            }
-            else
-                freeURL(desired_url);
-            
-            current_outlink_node = current_outlink_node->next;
+			int intrin_val = is_intrinsic(current_url->url, desired_url);
+			if (!intrin_val) //if NOT intrinsic
+			{
+				if (!found_url) // if NOT found in all_links, check redir_tree
+				{
+					// construct dummy string_redirect and find it in redirects
+					string_redirect *desired_redirect = (string_redirect *)redirect_init(string_link, NULL);
+					string_redirect *found_redirect = (string_redirect *)btree_find(redir_tree, desired_redirect);
+					
+					redirect_free(desired_redirect);
+					
+					//if NOT found in redir_tree
+					if (!found_redirect)
+					{
+						validate_url_and_populate(desired_url, redir_stack, all_links, redir_tree, urltable, request, port_string, regexparser);
+						goto success;
+					}
+				}
+			}
+			else // link IS intrinsic
+			{
+				printf("Removing outlink %s, intrinsic to %s\n", url_tostring(desired_url), current_url->url->host);
+				lnode *previous = current_outlink_node;
+				current_outlink_node = current_outlink_node->next;
+				string_llist_delete_node(&current_url->outlinks, (string_node**)&previous);
+			}
+			
+			// this line executes if intrinsic or already in all_links or redir_tree
+			freeURL(desired_url);
+			puts("Duplicate or intrinsic, link NOT added");
+			
+			if(!intrin_val)
+				success: current_outlink_node = current_outlink_node->next;
+			
 		}
         
         //do a backlink request on the current url
-        get_back_links(search_engine, current_url->url, port_string, request, regexparser, all_links, destination);
+        //get_back_links(search_engine, current_url->url, port_string, request, regexparser, all_links, destination);
         
 		current_url_node = current_url_node->next;
 		current_url = (url_w_string_links *)current_url_node->data;
@@ -807,5 +840,38 @@ void get_back_links(urlinfo *engine, urlinfo *current_url, char *port_string, ch
         report_error(error_msg);
     }
 	close(socket);
+}
+
+/* Checks if the new_page is intrinsic (has the same domain) as the old_page
+ * @Warning: The global variable intrin_parser must be intialized before this function is called
+ */
+int is_intrinsic(urlinfo *old_page, urlinfo *new_page)
+{
+	int ovector[intrin_parser->vectorsize];
+	int retval = pcre_exec(intrin_parser->re, NULL,
+						   old_page->host, (int)strlen(old_page->host), 0, 0,
+						   ovector, intrin_parser->vectorsize);
+	if (retval < 0)	// return false if couldn't parse old_page's domain
+		return 0;
+	
+	//copy the domain matched into buffer domain1
+	char domain1[100];
+	pcre_copy_substring(old_page->host, ovector, retval, 1, domain1, 100);
+	
+	
+	retval = pcre_exec(intrin_parser->re, NULL,
+					   new_page->host, (int)strlen(new_page->host), 0, 0,
+					   ovector, intrin_parser->vectorsize);
+	if (retval < 0)	// return false if couldn't parse new_page's domain
+		return 0;
+	
+	//copy the domain matched into the buffer domain2
+	char domain2[100];
+	pcre_copy_substring(new_page->host, ovector, retval, 1, domain2, 100);
+	
+	if (strcmp(domain1, domain2) == 0)
+		return 1;	// return true if the domains are a match
+	
+	return 0;		// return false
 }
 
