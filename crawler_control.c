@@ -22,14 +22,14 @@
 //userAgents randomly selected for http requests to avoid getting blocked by google
 char *userAgents[9] =
 {	"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9) AppleWebKit/537.71 (KHTML, like Gecko) Version/7.0 Safari/537.71",
-    "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:25.0) Gecko/20100101 Firefox/25.0",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.9; rv:25.0) Gecko/20100101 Firefox/25.0",
-    "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36"};
+	"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9) AppleWebKit/537.71 (KHTML, like Gecko) Version/7.0 Safari/537.71",
+	"Mozilla/5.0 (Windows NT 6.1; WOW64; rv:25.0) Gecko/20100101 Firefox/25.0",
+	"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36",
+	"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36",
+	"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36",
+	"Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36",
+	"Mozilla/5.0 (Macintosh; Intel Mac OS X 10.9; rv:25.0) Gecko/20100101 Firefox/25.0",
+	"Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36"};
 
 char *loadPage(int socket);
 void clean_search_results(string_llist *tags_and_urls, string_llist *destination);
@@ -59,13 +59,13 @@ int main()
 	char request[BUFFER_SIZE + 100];
 	char port_string[3];
 	strcpy(port_string, PORT_80);
-    char search_string[100];    //holds the user search query for autonaming save files
-    
+	char search_string[100];    //holds the user search query for autonaming save files
+	
 	// initialize parsers
 	regexparser = init_parser(pattern);
 	intrin_parser = init_parser(intrin_pattern);
-    
-    // Declare structures for link processing
+	
+	// Declare structures for link processing
 	llist urltable;             // llist of url_w_string_list
 	btree linksfound;           // for quick finding so we don't add redunant urls to linkstocheck
 	btree redirects;            // holds string_redirects
@@ -73,21 +73,21 @@ int main()
 	string_llist backlinks;     // holds backlinks of urls as strings
 	
 	// Initialize structures
-    llist_init(&urltable, (void *)&equals_url_w_string_links);
+	llist_init(&urltable, (void *)&equals_url_w_string_links);
 	btree_init(&linksfound, (void *)&urlcompare);       //all_links
 	btree_init(&redirects, (void *)&compare_redirects);
-    url_llist_init(&redir_stack);
-    string_llist_init(&backlinks);
+	url_llist_init(&redir_stack);
+	string_llist_init(&backlinks);
 	
-    // Initialize search engine
+	// Initialize search engine
 	urlinfo search_engine;
-    search_engine.host = "www.google.com";
+	search_engine.host = "www.google.com";
 	search_engine.path = (char *) malloc(100);
 	search_engine.filename = "";
 	search_engine.searchdepth = 0;
-    search_engine.searchdepth = 0;
-    
-    /*following for parser testing
+	search_engine.searchdepth = 0;
+	
+	/*following for parser testing
 	 urlinfo testUrl1, testUrl2;
 	 testUrl1.host = "wikipedia.com";
 	 testUrl2.host = "en.tv.co.wikipediZ.org";
@@ -100,17 +100,17 @@ int main()
 	 */
 	
 	
-    //**************************** Start alogorithm ********************************
-    
-    //Get root set and put potential links in links_in_search
-    string_llist *links_in_search;
+	//**************************** Start alogorithm ********************************
+	
+	//Get root set and put potential links in links_in_search
+	string_llist *links_in_search;
 	links_in_search = get_potential_root_set(request, port_string, regexparser,
-                                             &search_engine, search_string);
-    
-    //Validate and populate the links in links_in_search, which is the potential root set
-    validate_url_string_list(search_engine, links_in_search, &redir_stack, &linksfound,
-                             &redirects, &urltable, request, port_string, regexparser);
-    
+											 &search_engine, search_string);
+	
+	//Validate and populate the links in links_in_search, which is the potential root set
+	validate_url_string_list(search_engine, links_in_search, &redir_stack, &linksfound,
+							 &redirects, &urltable, request, port_string, regexparser);
+	
 	//TEMPORARILY DISABLE THE GETTING OF BACKLINKS W/IN THIS FUNCTION
 	//Validate and populate the outlinks of the root set and get potential backlinks from root set
 	validate_outlinks_get_backlinks(&search_engine, &linksfound, &redir_stack, &redirects,
@@ -121,27 +121,27 @@ int main()
 	 validate_url_string_list(search_engine, &backlinks, &redir_stack, &linksfound, &redirects,
 	 &urltable, request, port_string, regexparser);
 	 */
-    
+	
 	//Link outlinks of valid urls to valid urls
-    link_outlinks(&urltable, &linksfound, &redirects);
+	link_outlinks(&urltable, &linksfound, &redirects);
 	
 	puts("linked!");
 	
-    /***** Export graph *****/
-    
+	/***** Export graph *****/
+	
 	char path[] = "searches"; //folder for export
-    
-    // Convert: void btree -> urlinfo ** -> url_llist
-    urlinfo **super_set_array = (urlinfo**)btree_toarray(&linksfound);
-    url_llist super_set_list;
-    url_llist_init(&super_set_list);
-    
-    int i = 0;
-    for (i = 0; i < linksfound.numElems; i++)
-        url_llist_push_back(&super_set_list, super_set_array[i]);
-    
-    // Save Data
-    setcache(path, search_string, &super_set_list);
+	
+	// Convert: void btree -> urlinfo ** -> url_llist
+	urlinfo **super_set_array = (urlinfo**)btree_toarray(&linksfound);
+	url_llist super_set_list;
+	url_llist_init(&super_set_list);
+	
+	int i = 0;
+	for (i = 0; i < linksfound.numElems; i++)
+		url_llist_push_back(&super_set_list, super_set_array[i]);
+	
+	// Save Data
+	setcache(path, search_string, &super_set_list);
 	
 	/* DEMO: this should be moved out of crawler_control eventually */
 	
@@ -171,8 +171,8 @@ int main()
 	
 	/* END DEMO */
 	
-    /***** Free Structures *****/
-    //TODO
+	/***** Free Structures *****/
+	//TODO
 	
 	return 0;
 }
@@ -213,7 +213,7 @@ void link_outlinks(llist *urltable, btree *all_links, btree *redirects)
 				string_redirect *found_redirect = (string_redirect  *)btree_find(redirects, desired_redirect);
 				
 				redirect_free(desired_redirect);
-                
+				
 				if (found_redirect)
 					llist_push_back(&current_url->url->outlinks, found_redirect->valid_url);
 			}
@@ -241,14 +241,14 @@ void getRequest(urlinfo *url, char *request)
 		strcat(request, url->filename);
 	
 	strcat(request, " HTTP/1.0\n");
-    
+	
 	// construct headers
-    strcat(request, "Host: ");
-    strcat(request, url->host);
-    strcat(request, "\n");
+	strcat(request, "Host: ");
+	strcat(request, url->host);
+	strcat(request, "\n");
 	strcat(request, "From: thoffma7@emich.edu\n");
 	strcat(request, "User-Agent: crawler/0.40\n");
-    
+	
 	// end it
 	strcat(request, "\n");
 }
@@ -263,14 +263,14 @@ void getRequest(urlinfo *url, char *request)
  */
 void formatSearchRequest(urlinfo *url, char *request)
 {
-    strcpy(request, "GET /");
-    strcat(request, url->path);
-    strcat(request, " HTTP/1.0\n");
-    strcat(request, "Host: ");
-    strcat(request, url->host);
-    strcat(request, "\nUser Agent: ");
-    strcat(request, userAgents[rand() % 9]);
-    strcat(request, "\n\n");
+	strcpy(request, "GET /");
+	strcat(request, url->path);
+	strcat(request, " HTTP/1.0\n");
+	strcat(request, "Host: ");
+	strcat(request, url->host);
+	strcat(request, "\nUser Agent: ");
+	strcat(request, userAgents[rand() % 9]);
+	strcat(request, "\n\n");
 }
 
 /*
@@ -290,35 +290,35 @@ int get_links(char *code, parser *p, string_llist *list, int *substrings, int nu
  */
 char *loadPage(int socket)
 {
-    // declare variables
-    char buffer[BUFFER_SIZE];
-    int bytes_received = 0;
-    string_llist list;
+	// declare variables
+	char buffer[BUFFER_SIZE];
+	int bytes_received = 0;
+	string_llist list;
 	
 	// clear list
 	string_llist_init(&list);
-    
+	
 	// read data and push to linked list, avoiding the need to know code length beforehand
-    do
-    {
-        memset(buffer, 0, sizeof(buffer));
-        bytes_received = (int)read(socket, buffer, BUFFER_SIZE - 1);
+	do
+	{
+		memset(buffer, 0, sizeof(buffer));
+		bytes_received = (int)read(socket, buffer, BUFFER_SIZE - 1);
 		buffer[BUFFER_SIZE - 1] = '\0';
-        string_llist_push_back(&list, buffer);
-    } while (bytes_received);
+		string_llist_push_back(&list, buffer);
+	} while (bytes_received);
 	// allocate enough space to store code in linked list (and null char)
-    char *code = (char *) malloc((list.num_chars + 1) * sizeof(char));
-    
-    // load code from linked list to string
-    size_t current_index = 0;
-    while (list.size)
-    {
-        string_llist_pop_front(&list, buffer);
-        strcpy(code + current_index, buffer);
-        current_index += strlen(buffer);
-    }
-    
-    return code;
+	char *code = (char *) malloc((list.num_chars + 1) * sizeof(char));
+	
+	// load code from linked list to string
+	size_t current_index = 0;
+	while (list.size)
+	{
+		string_llist_pop_front(&list, buffer);
+		strcpy(code + current_index, buffer);
+		current_index += strlen(buffer);
+	}
+	
+	return code;
 }
 
 /*
@@ -334,56 +334,56 @@ char *loadPage(int socket)
  * Bad links are removed: adds, dropdown menus, etc.
  */
 string_llist *get_potential_root_set(char *request, char *port_string,
-                                     parser *regexparser, urlinfo *searchURL, char *save_query)
+									 parser *regexparser, urlinfo *searchURL, char *save_query)
 {
 	char *pathclone;
-    
+	
 	getUserSearchQuery(searchURL->path, save_query);
-    
+	
 	// to hold search query minus the "start=num" part for easy reload and update
 	pathclone = malloc(strlen(searchURL->path)+1);
 	strcpy(pathclone, searchURL->path);
-    
+	
 	// create linked list to hold hyperlinks from code
 	string_llist *links_in_code = malloc(sizeof(string_llist));
 	string_llist_init(links_in_code);
-    
+	
 	// linked list to hold <a> tags and associated urls
 	string_llist *tags_and_urls = malloc(sizeof(string_llist));
 	string_llist_init(tags_and_urls);
-    
+	
 	int socket;
-    
+	
 	int resultsPerPage = 50;
 	int i;
 	for(i = 1; i < 50; i += resultsPerPage)
 	{
-        incrementResultsRequest(searchURL->path, pathclone, i, resultsPerPage);
-        
-        getRequest(searchURL, request);
-        //formatSearchRequest(searchURL, request);
-        
-        socket = connect_socket(searchURL->host, port_string, stdout);
-        if (socket >= 0)
-        {
+		incrementResultsRequest(searchURL->path, pathclone, i, resultsPerPage);
+		
+		getRequest(searchURL, request);
+		//formatSearchRequest(searchURL, request);
+		
+		socket = connect_socket(searchURL->host, port_string, stdout);
+		if (socket >= 0)
+		{
 			// send http requrest
 			fputs("\nsending http request: \n", stdout);
 			fputs(request, stdout);
-            
+			
 			send(socket, request, strlen(request), 0);
-            
+			
 			// get code
 			char *code = loadPage(socket);
-            
+			
 			// get array containing <a> tags and associated urls
 			int substrings[] = {0, 1};
 			get_links(code, regexparser, tags_and_urls, substrings, 2);
-            free(code);
-        }
-        else
-            report_error("socket_connect() failed");
-        
-        // close the socket
+			free(code);
+		}
+		else
+			report_error("socket_connect() failed");
+		
+		// close the socket
 		close(socket);
 	}
 	free(pathclone);
@@ -391,7 +391,7 @@ string_llist *get_potential_root_set(char *request, char *port_string,
 	
 	// free tags_and_urls
 	string_llist_free(tags_and_urls);
-    
+	
 	return links_in_code;
 }
 
@@ -403,23 +403,23 @@ void clean_search_results(string_llist *tags_and_urls, string_llist *destination
 {
 	char pattern[] = "((^(.(?!http))*$)|(<a onclick|<a class|google.com|facebook|youtube))";
 	parser *jargonParser = init_parser(pattern);
-    
+	
 	int vector[jargonParser->vectorsize];
 	string_node *node = tags_and_urls->front;
 	while(node)
 	{
 		// find matches for re with text, optimized w/ study
 		pcre_exec(jargonParser->re, NULL,//p->study,
-                  node->string, (int)strlen(node->string), 0, 0,
-                  vector, jargonParser->vectorsize);
-        
-        // if match not found, add to destination list (which comes after the <a> tag
+				  node->string, (int)strlen(node->string), 0, 0,
+				  vector, jargonParser->vectorsize);
+		
+		// if match not found, add to destination list (which comes after the <a> tag
 		if (vector[0] < 0)
 		{
 			//printf("%s\n", node->next->string);
 			string_llist_push_back(destination, node->next->string);
 		}
-        
+		
 		// increment by 2 to get to the next <a> tag
 		node = node->next->next;
 	}
@@ -431,20 +431,20 @@ void clean_search_results(string_llist *tags_and_urls, string_llist *destination
  */
 void incrementResultsRequest(char *path, char *clone, int start, int numResults)
 {
-    strcpy(path, clone);
-    
-    char startString[4];
-    sprintf(startString, "%d", start);
-    strcat(path, "&start=");
-    strcat(path, startString);
-    
-    char numResultsString[4];
-    sprintf(numResultsString, "%d", numResults);
-    strcat(path, "&num=");
-    strcat(path, numResultsString);
-    
-    // for testing
-    // fputs(path, stdout);
+	strcpy(path, clone);
+	
+	char startString[4];
+	sprintf(startString, "%d", start);
+	strcat(path, "&start=");
+	strcat(path, startString);
+	
+	char numResultsString[4];
+	sprintf(numResultsString, "%d", numResults);
+	strcat(path, "&num=");
+	strcat(path, numResultsString);
+	
+	// for testing
+	// fputs(path, stdout);
 }
 
 /*
@@ -453,39 +453,39 @@ void incrementResultsRequest(char *path, char *clone, int start, int numResults)
  */
 void getUserSearchQuery(char *path, char *save_query)
 {
-    char templine[(PATH_LENGTH/2)];
-    char *token;
-    const char delims[2] = {' ', '\n'};//"\n";
-    
-    fputs("enter a line of text\n", stdout);
-    
-    
-    if (fgetline(templine, (int)sizeof(templine)-1) > 0) //read a line
-    {
-        token = strtok(templine, delims);
-        
-        
-        strcpy(path, "search?q=");
-        
-        if (token != NULL)
-        {
-            strcat(path, token);
-            strcat(save_query, token);
-            token = strtok(NULL, delims);
-        }
-        
-        while (token != NULL)
-        {
-            strcat(path, "+");
-            strcat(save_query, "_");
-            strcat(path, token);
+	char templine[(PATH_LENGTH/2)];
+	char *token;
+	const char delims[2] = {' ', '\n'};//"\n";
+	
+	fputs("enter a line of text\n", stdout);
+	
+	
+	if (fgetline(templine, (int)sizeof(templine)-1) > 0) //read a line
+	{
+		token = strtok(templine, delims);
+		
+		
+		strcpy(path, "search?q=");
+		
+		if (token != NULL)
+		{
+			strcat(path, token);
 			strcat(save_query, token);
-            token = strtok(NULL, delims);
-        }
-        strcat(path, "&safe=active");
-    }
-    else
-        report_error("getUserSearchQuery failed");
+			token = strtok(NULL, delims);
+		}
+		
+		while (token != NULL)
+		{
+			strcat(path, "+");
+			strcat(save_query, "_");
+			strcat(path, token);
+			strcat(save_query, token);
+			token = strtok(NULL, delims);
+		}
+		strcat(path, "&safe=active");
+	}
+	else
+		report_error("getUserSearchQuery failed");
 }
 
 /*
@@ -536,133 +536,133 @@ void add_links_to_redirect_tree(btree *redir_tree, url_llist *redir_stack, urlin
  */
 int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *all_links, btree *redir_tree, llist *urls_w_strings_list, char *request, char *port_string, parser *regexparser)
 {
-    /*
-     * INITIAL SETUP: Attempt to connect to cur_url and download the html
-     */
-    
-    //generate http GET request
-    getRequest(cur_url, request);
-    
-    // notify user of url
-    printf("\nURL: %s/%s%s\n", cur_url->host, cur_url->path, cur_url->filename);
-    
-    // create socket
-    int socket = connect_socket(cur_url->host, port_string, stdout);
+	/*
+	 * INITIAL SETUP: Attempt to connect to cur_url and download the html
+	 */
+	
+	//generate http GET request
+	getRequest(cur_url, request);
+	
+	// notify user of url
+	printf("\nURL: %s/%s%s\n", cur_url->host, cur_url->path, cur_url->filename);
+	
+	// create socket
+	int socket = connect_socket(cur_url->host, port_string, stdout);
 	printf("Socket number is %d\n", socket);
-    if (socket >= 0)
-    {
-        puts("connected");
-        
-        // send http requrest
-        send(socket, request, strlen(request), 0);
-        puts("sent request");
-        
-        // get code
-        char *code = loadPage(socket);
-        puts("grabbed code");
-        
-        // test if the page loaded properly
-        int statuscode = get_status_code(code);
-        printf("status code: %d\n", statuscode);
-        
+	if (socket >= 0)
+	{
+		puts("connected");
+		
+		// send http requrest
+		send(socket, request, strlen(request), 0);
+		puts("sent request");
+		
+		// get code
+		char *code = loadPage(socket);
+		puts("grabbed code");
+		
+		// test if the page loaded properly
+		int statuscode = get_status_code(code);
+		printf("status code: %d\n", statuscode);
+		
 		//CASE 1: We have a successful GET request. URL is valid. Insert into all_links and
-        //insert any required redirect entries into the redirect tree
-        if (statuscode >= 200 && statuscode < 300) //success, URL is valid - populate structures!
-        {
-            // create linked list to hold hyperlinks from code
-            string_llist *links_in_code = malloc(sizeof(string_llist));
-            string_llist_init(links_in_code);
-            
-            // puts url strings into links_in_code
-            int substrings[] = {1};
-            get_links(code, regexparser, links_in_code, substrings, 1);
-            
-            //insert into url_w_string_links linked list
-            struct url_w_string_links *url_and_strings = malloc(sizeof(struct url_w_string_links));
-            url_and_strings->url = cur_url;
-            url_and_strings->outlinks = *links_in_code;
-            llist_push_back(urls_w_strings_list, url_and_strings);
-            
-            //insert into all_links btree
-            btree_insert(all_links, cur_url);
-            
-            // insert into redir_links btree if necessary and free links
+		//insert any required redirect entries into the redirect tree
+		if (statuscode >= 200 && statuscode < 300) //success, URL is valid - populate structures!
+		{
+			// create linked list to hold hyperlinks from code
+			string_llist *links_in_code = malloc(sizeof(string_llist));
+			string_llist_init(links_in_code);
+			
+			// puts url strings into links_in_code
+			int substrings[] = {1};
+			get_links(code, regexparser, links_in_code, substrings, 1);
+			
+			//insert into url_w_string_links linked list
+			struct url_w_string_links *url_and_strings = malloc(sizeof(struct url_w_string_links));
+			url_and_strings->url = cur_url;
+			url_and_strings->outlinks = *links_in_code;
+			llist_push_back(urls_w_strings_list, url_and_strings);
+			
+			//insert into all_links btree
+			btree_insert(all_links, cur_url);
+			
+			// insert into redir_links btree if necessary and free links
 			add_links_to_redirect_tree(redir_tree, redir_stack, cur_url);
-            
+			
 			free(code);
 			close(socket);
-            return 1;
-        }//END CASE 1
-        
-        //CASE 2: We've been redirected. Create url_from_redirect. If url_from_redirect
-        //already in all_links. Simply create redirect entries and insert into redirect tree.
-        //Otherwise, push cur_url (the url that triggered the redirect) onto the redirect_stack,
-        //And call this function recursively with url_from_redirect as the urlinfo param.
-        //
-        else if ((statuscode >= 300 && statuscode < 400) && (cur_url->redirectdepth < MAX_REDIRECT_DEPTH))
-        {
-            // set up new url from redirect info
-            char *redirect_url_string = get_300_location(code);
-            printf("REDIRECT TO %s\n", redirect_url_string);
-            
-            urlinfo *url_from_redirect = makeURLfromredirect(redirect_url_string, cur_url);
-            //redirect->searchdepth = newURL->searchdepth;
-            
-            url_llist_push_front(redir_stack, cur_url); // push cur_url to redirected urls stack
-            
-            //search for new url from redirect in all_links
-            urlinfo *url_from_all_links = (urlinfo*)btree_find(all_links, url_from_redirect);
-            
-            //CASE 2a: Redirect is an existing url. Delete the duplicate, create
-            //all redirect entries and insert into redir_tree
-            if (url_from_all_links) //if temp != NULL, then redirect is NOT a new link
-            {
-                freeURL(url_from_redirect); //duplicate url so we need to free it
-                
-                //insert into redir_links btree if necessary and free links
-	        	add_links_to_redirect_tree(redir_tree, redir_stack, cur_url);
-                free(redirect_url_string);
-                free(code);
-				close(socket);
-                return 2;
-            }//END CASE 2a
-            
-            //CASE 2b: redirect is a NEW url: push cur_url to redir_stack and recursively call
-            //with url_from_redirect as new urlinfo param
-            else
-            {
-                //free unnecessary stuff before recursive call so we don't have excess memory build-up
+			return 1;
+		}//END CASE 1
+		
+		//CASE 2: We've been redirected. Create url_from_redirect. If url_from_redirect
+		//already in all_links. Simply create redirect entries and insert into redirect tree.
+		//Otherwise, push cur_url (the url that triggered the redirect) onto the redirect_stack,
+		//And call this function recursively with url_from_redirect as the urlinfo param.
+		//
+		else if ((statuscode >= 300 && statuscode < 400) && (cur_url->redirectdepth < MAX_REDIRECT_DEPTH))
+		{
+			// set up new url from redirect info
+			char *redirect_url_string = get_300_location(code);
+			printf("REDIRECT TO %s\n", redirect_url_string);
+			
+			urlinfo *url_from_redirect = makeURLfromredirect(redirect_url_string, cur_url);
+			//redirect->searchdepth = newURL->searchdepth;
+			
+			url_llist_push_front(redir_stack, cur_url); // push cur_url to redirected urls stack
+			
+			//search for new url from redirect in all_links
+			urlinfo *url_from_all_links = (urlinfo*)btree_find(all_links, url_from_redirect);
+			
+			//CASE 2a: Redirect is an existing url. Delete the duplicate, create
+			//all redirect entries and insert into redir_tree
+			if (url_from_all_links) //if temp != NULL, then redirect is NOT a new link
+			{
+				freeURL(url_from_redirect); //duplicate url so we need to free it
+				
+				//insert into redir_links btree if necessary and free links
+				add_links_to_redirect_tree(redir_tree, redir_stack, cur_url);
 				free(redirect_url_string);
-                
+				free(code);
+				close(socket);
+				return 2;
+			}//END CASE 2a
+			
+			//CASE 2b: redirect is a NEW url: push cur_url to redir_stack and recursively call
+			//with url_from_redirect as new urlinfo param
+			else
+			{
+				//free unnecessary stuff before recursive call so we don't have excess memory build-up
+				free(redirect_url_string);
+				
 				free(code);
 				
-                int ret_val = validate_url_and_populate(url_from_redirect, redir_stack, all_links, redir_tree,
-                                                        urls_w_strings_list, request,port_string, regexparser);
+				int ret_val = validate_url_and_populate(url_from_redirect, redir_stack, all_links, redir_tree,
+														urls_w_strings_list, request,port_string, regexparser);
 				close(socket);
 				return ret_val;
-            }//END CASE 2b
-        } //END CASE 2
-        
-        //Case 3: NOT success AND NOT redirect so we have a DEAD END. Free structures and exit
-        else
-        {
-            free(code);
+			}//END CASE 2b
+		} //END CASE 2
+		
+		//Case 3: NOT success AND NOT redirect so we have a DEAD END. Free structures and exit
+		else
+		{
+			free(code);
 			
 			//free URLs on redir_stack
 			urlinfo *temp_url;
 			while (redir_stack->size)
 			{
 				puts("popping and freeing redir_stack");
-            	temp_url = url_llist_pop_front(redir_stack);
+				temp_url = url_llist_pop_front(redir_stack);
 				freeURL(temp_url);
 			}
 			close(socket);
-            return 0;
-        }//END CASE 3
+			return 0;
+		}//END CASE 3
 		
-    }//end (socket>=0)
-    else
-        report_error("socket_connect() failed");
+	}//end (socket>=0)
+	else
+		report_error("socket_connect() failed");
 	
 	return -1;
 }
@@ -682,22 +682,22 @@ void validate_url_string_list(urlinfo origin_url, string_llist *links_in_search,
 		
 		if (!url_from_search)	// unable to construct url
 			continue;
-        else if (btree_find(all_links, url_from_search)) //link already in all_links
-            freeURL(url_from_search);
-        else
-        {
-            // construct dummy string_redirect and find it in redirects
-            string_redirect *desired_redirect = (string_redirect *)redirect_init(link_in_search, NULL);
-            string_redirect *found_redirect = (string_redirect *)btree_find(redir_tree, desired_redirect);
-            
-            redirect_free(desired_redirect); //if we didn't find the redirect, that DOESN'T mean it's a valid url or redirect
-            
-            if (found_redirect)
-                freeURL(url_from_search);
-            else
-                validate_url_and_populate(url_from_search, redir_stack, all_links, redir_tree,
-                                          urls_w_strings_list, request, port_string, regexparser);
-        }
+		else if (btree_find(all_links, url_from_search)) //link already in all_links
+			freeURL(url_from_search);
+		else
+		{
+			// construct dummy string_redirect and find it in redirects
+			string_redirect *desired_redirect = (string_redirect *)redirect_init(link_in_search, NULL);
+			string_redirect *found_redirect = (string_redirect *)btree_find(redir_tree, desired_redirect);
+			
+			redirect_free(desired_redirect); //if we didn't find the redirect, that DOESN'T mean it's a valid url or redirect
+			
+			if (found_redirect)
+				freeURL(url_from_search);
+			else
+				validate_url_and_populate(url_from_search, redir_stack, all_links, redir_tree,
+										  urls_w_strings_list, request, port_string, regexparser);
+		}
 	}
 }
 
@@ -706,22 +706,22 @@ void validate_url_string_list(urlinfo origin_url, string_llist *links_in_search,
  */
 void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, url_llist *redir_stack, btree *redir_tree, llist *urltable, char *request, char *port_string, parser *regexparser, string_llist *destination)
 {
-    lnode *current_url_node = urltable->front;
-    url_w_string_links *current_url = (url_w_string_links *)current_url_node->data;
-    //iterate through the root set in the urltable
-    while(current_url_node && current_url->url->searchdepth == 1)
-    {
+	lnode *current_url_node = urltable->front;
+	url_w_string_links *current_url = (url_w_string_links *)current_url_node->data;
+	//iterate through the root set in the urltable
+	while(current_url_node && current_url->url->searchdepth == 1)
+	{
 		// iterate through each url string in each urlinfo and validate
 		lnode *current_outlink_node = (lnode *)current_url->outlinks.front;
 		while (current_outlink_node)
-        {
-            char *string_link = (char *)current_outlink_node->data;
-            
-            // construct dummy urlinfo and see if it is in all links
-            urlinfo *desired_url = (urlinfo *)makeURLfromlink(string_link, current_url->url);
-            urlinfo *found_url = (urlinfo *)btree_find(all_links, desired_url);
+		{
+			char *string_link = (char *)current_outlink_node->data;
+			
+			// construct dummy urlinfo and see if it is in all links
+			urlinfo *desired_url = (urlinfo *)makeURLfromlink(string_link, current_url->url);
+			urlinfo *found_url = (urlinfo *)btree_find(all_links, desired_url);
 			printf("\nChecking outlink %s from url %s\n", url_tostring(desired_url), url_tostring(current_url->url));
-            
+			
 			int intrin_val = is_intrinsic(current_url->url, desired_url);
 			if (!intrin_val) //if NOT intrinsic
 			{
@@ -757,13 +757,13 @@ void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, u
 				success: current_outlink_node = current_outlink_node->next;
 			
 		}
-        
-        //do a backlink request on the current url
-        //get_back_links(search_engine, current_url->url, port_string, request, regexparser, all_links, destination);
-        
+		
+		//do a backlink request on the current url
+		//get_back_links(search_engine, current_url->url, port_string, request, regexparser, all_links, destination);
+		
 		current_url_node = current_url_node->next;
 		current_url = (url_w_string_links *)current_url_node->data;
-    }
+	}
 }
 
 /*
@@ -771,17 +771,17 @@ void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, u
  */
 void back_link_request(char *request, urlinfo *engine, urlinfo *url, int num_links)
 {
-    strcpy(request, "GET /search?q=link:");
-    strcat(request, url->host);
-    strcat(request, "&start=0&num=50");
+	strcpy(request, "GET /search?q=link:");
+	strcat(request, url->host);
+	strcat(request, "&start=0&num=50");
 	
 	strcat(request, " HTTP/1.0\n");
-    
+	
 	// construct headers
-    strcat(request, "Host: www.");
-    strcat(request, engine->host);
-    strcat(request, "\n");
-    
+	strcat(request, "Host: www.");
+	strcat(request, engine->host);
+	strcat(request, "\n");
+	
 	// end it
 	strcat(request, "\n");
 }
@@ -791,54 +791,54 @@ void back_link_request(char *request, urlinfo *engine, urlinfo *url, int num_lin
  */
 void get_back_links(urlinfo *engine, urlinfo *current_url, char *port_string, char *request, parser *regexparser, btree *all_links, string_llist *destination)
 {
-    //connect to engine
-    int socket = connect_socket(engine->host, port_string, stdout);
-    
-    if (socket >= 0)
-    {
-        puts("\nconnected to:\n");
-        
-        back_link_request(request, engine, current_url, 50);
-        
-        printf("sending backlink request\n%s", request);
-        send(socket, request, strlen(request), 0);
-        
-        char *code = loadPage(socket);
-        printf("Request returned with code: %d\n", get_status_code(code));
-        
-        // create linked list to hold hyperlinks from code
-        string_llist links_in_code;
-        string_llist_init(&links_in_code);
-        
-        // linked list to hold <a> tags and associated urls
-        string_llist *tags_and_urls = malloc(sizeof(string_llist));
-        string_llist_init(tags_and_urls);
-        
-        
-        //get links from code and put in tags_and_urls
-        int substrings[] = {0,1};
-        get_links(code, regexparser, tags_and_urls, substrings, 2);
-        free(code);
-        
-        //clean tags_and_urls and put in links_in_code
-        clean_search_results(tags_and_urls, &links_in_code);
-        free(tags_and_urls);
-        
-        // push the found strings to destination
-        char *link_in_code = NULL;
-        string_llist_pop_front(&links_in_code, link_in_code);
-        while(link_in_code)
-        {
-            string_llist_push_back(destination, link_in_code);
-            string_llist_pop_front(&links_in_code, link_in_code);
-        }
-    }
-    else
-    {
-        char *error_msg = NULL;
-        sprintf(error_msg,"unable to connect to engine: %s for backlink search on site: %s", engine->host, current_url->host);
-        report_error(error_msg);
-    }
+	//connect to engine
+	int socket = connect_socket(engine->host, port_string, stdout);
+	
+	if (socket >= 0)
+	{
+		puts("\nconnected to:\n");
+		
+		back_link_request(request, engine, current_url, 50);
+		
+		printf("sending backlink request\n%s", request);
+		send(socket, request, strlen(request), 0);
+		
+		char *code = loadPage(socket);
+		printf("Request returned with code: %d\n", get_status_code(code));
+		
+		// create linked list to hold hyperlinks from code
+		string_llist links_in_code;
+		string_llist_init(&links_in_code);
+		
+		// linked list to hold <a> tags and associated urls
+		string_llist *tags_and_urls = malloc(sizeof(string_llist));
+		string_llist_init(tags_and_urls);
+		
+		
+		//get links from code and put in tags_and_urls
+		int substrings[] = {0,1};
+		get_links(code, regexparser, tags_and_urls, substrings, 2);
+		free(code);
+		
+		//clean tags_and_urls and put in links_in_code
+		clean_search_results(tags_and_urls, &links_in_code);
+		free(tags_and_urls);
+		
+		// push the found strings to destination
+		char *link_in_code = NULL;
+		string_llist_pop_front(&links_in_code, link_in_code);
+		while(link_in_code)
+		{
+			string_llist_push_back(destination, link_in_code);
+			string_llist_pop_front(&links_in_code, link_in_code);
+		}
+	}
+	else
+	{
+		char *error_msg = NULL;
+		sprintf(error_msg,"unable to connect to engine: %s for backlink search on site: %s", engine->host, current_url->host);
+		report_error(error_msg);
+	}
 	close(socket);
 }
 
