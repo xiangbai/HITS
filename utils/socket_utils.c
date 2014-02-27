@@ -7,6 +7,10 @@
 #include "socket_utils.h"
 #include "general_utils.h"
 #include <errno.h>
+#include <sys/time.h>
+#include <sys/types.h>
+
+struct timeval rcv_timeout;
 
 int connect_socket(char *host_string, char *port_string, FILE *stream)
 {
@@ -41,9 +45,21 @@ int connect_socket(char *host_string, char *port_string, FILE *stream)
 		if (socket_id < 0)
 			continue;
 		
+		// set timeout value for receiving data from pages
+		rcv_timeout.tv_sec = 10;
+		rcv_timeout.tv_usec = 0;
+		// set timeout on receiving data
+		if (setsockopt(socket_id, SOL_SOCKET, SO_RCVTIMEO, 
+				(char*)&rcv_timeout, sizeof(rcv_timeout)) < 0)
+		{
+			// return null if unable to set timeout
+			report_error("unable to set socket timeout");
+			return NULL;
+		}
+		
 		// connect to server (break if connection is successful)
 		int connectval = connect(socket_id, current->ai_addr, current->ai_addrlen);
-		if (connectval == 0)
+		if (connectval <= 0)
 			break;
        
 		printf("ERROR: %s\n", strerror(errno));

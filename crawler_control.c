@@ -1,6 +1,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 #include <unistd.h>
 #include "hits.h"
 #include "utils/domaininfo.h"
@@ -31,6 +34,8 @@ char *userAgents[9] =
 	"Mozilla/5.0 (Macintosh; Intel Mac OS X 10.9; rv:25.0) Gecko/20100101 Firefox/25.0",
 	"Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36"};
 
+struct timeval rcv_timeout;
+
 char *loadPage(int socket);
 void clean_search_results(string_llist *tags_and_urls, string_llist *destination);
 void getRequest(urlinfo *url, char *request);
@@ -60,6 +65,10 @@ int main()
 	char port_string[3];
 	strcpy(port_string, PORT_80);
 	char search_string[100];    //holds the user search query for autonaming save files
+	
+	// set timeout value for receiving data from pages
+	rcv_timeout.tv_sec = 10;
+	rcv_timeout.tv_usec = 0;
 	
 	// initialize parsers
 	regexparser = init_parser(pattern);
@@ -290,6 +299,14 @@ int get_links(char *code, parser *p, string_llist *list, int *substrings, int nu
  */
 char *loadPage(int socket)
 {
+	// set timeout on receiving data
+	if (setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, (char*)&rcv_timeout, sizeof(rcv_timeout)) < 0)
+	{
+		// return null if unable to set timeout
+		report_error("unable to set socket timeout");
+		return NULL;
+	}
+	
 	// declare variables
 	char buffer[BUFFER_SIZE];
 	int bytes_received = 0;
@@ -305,7 +322,8 @@ char *loadPage(int socket)
 		bytes_received = (int)read(socket, buffer, BUFFER_SIZE - 1);
 		buffer[BUFFER_SIZE - 1] = '\0';
 		string_llist_push_back(&list, buffer);
-	} while (bytes_received);
+	} while (bytes_received > 0);
+	
 	// allocate enough space to store code in linked list (and null char)
 	char *code = (char *) malloc((list.num_chars + 1) * sizeof(char));
 	
@@ -551,7 +569,7 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
 	printf("Socket number is %d\n", socket);
 	if (socket >= 0)
 	{
-		puts("connected");
+		puts("connected!");
 		
 		// send http requrest
 		send(socket, request, strlen(request), 0);
