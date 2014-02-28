@@ -15,7 +15,7 @@ void llist_free(llist *list, int free_pointers)
 {
 	lnode *current = list->front;
 	lnode *next;
-	
+
 	while(current)
 	{
 		next = current->next;

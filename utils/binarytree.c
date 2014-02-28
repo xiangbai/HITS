@@ -30,6 +30,10 @@ void btree_init(btree *tree, int (*comparefunction)(void *a, void *b))
 
 void btree_free(btree *tree, int free_pointers)
 {
+	// don't do anything if no data in tree
+	if (tree->numElems == 0)
+		return;
+	
 	treenode *node = tree->root;
 	treenode *prevnode;
 	void *data;
