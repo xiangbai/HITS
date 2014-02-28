@@ -1,0 +1,2 @@
+all:
+	gcc testdomain.c utils/domaininfo.c utils/parser.c utils/string_linked_list.c utils/binarytree.c utils/llist.c utils/general_utils.c urlinfo.c -lpcre -o testdomain

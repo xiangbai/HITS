@@ -14,7 +14,7 @@
  * 
  * Sample Structure:
  * 
- * domaininfo	domaininfo	   urlinfo
+ * domaininfo	domainlink	   urlinfo
  * ----------	----------	-------------------
  * 						   *-- a.com/index.html
  * 						  /

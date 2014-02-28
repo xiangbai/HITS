@@ -56,6 +56,7 @@ char *get_name_sans_subdomains(char *domain_name)
  */
 int compare_domain_name(domaininfo *a, domaininfo *b)
 {
+	return strcmp(a->name, b->name);
 	// get domains without subdomains
 	char *domain_a = get_name_sans_subdomains(a->name);
 	char *domain_b = get_name_sans_subdomains(b->name);
@@ -77,6 +78,7 @@ int compare_domain_name(domaininfo *a, domaininfo *b)
  */
 int compare_domain_to_link(domaininfo *domain, domainlink *link)
 {
+	return strcmp(domain->name, link->domain->name);
 	// get domains without subdomains
 	char *domain_a = get_name_sans_subdomains(domain->name);
 	char *domain_b = get_name_sans_subdomains(link->domain->name);
