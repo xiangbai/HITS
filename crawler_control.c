@@ -22,6 +22,9 @@
 #define BUFFER_SIZE 1024
 #define PORT_80 "80"
 
+#define ROOT_GRAPH_SIZE	30
+#define MAX_BACKLINKS	22
+
 //userAgents randomly selected for http requests to avoid getting blocked by google
 char *userAgents[9] =
 {	"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36",
@@ -115,10 +118,20 @@ int main()
 	string_llist *links_in_search;
 	links_in_search = get_potential_root_set(request, port_string, regexparser,
 											 &search_engine, search_string);
-	
 	//Validate and populate the links in links_in_search, which is the potential root set
 	validate_url_string_list(search_engine, links_in_search, &redir_stack, &linksfound,
 							 &redirects, &urltable, request, port_string, regexparser);
+
+/*
+	puts("ROOT SET");
+	urlinfo** linkstoshow = (urlinfo**)btree_toarray(&linksfound);
+	int j;
+	for (j = 0; j < linksfound.numElems; j++)
+		printf("url: %s %s %s\n \tdepth: %d\n\n", 
+				linkstoshow[j]->host, linkstoshow[j]->path, linkstoshow[j]->filename, linkstoshow[j]->searchdepth);
+	
+	while(1);
+*/
 	
 	//TEMPORARILY DISABLE THE GETTING OF BACKLINKS W/IN THIS FUNCTION
 	//Validate and populate the outlinks of the root set and get potential backlinks from root set
@@ -195,22 +208,25 @@ void link_outlinks(llist *urltable, btree *all_links, btree *redirects)
 	puts("Linking Outlinks!");
 	char string_link[BUFFER_SIZE];
 	
+	puts("a");
 	// iterate through each urlinfo
 	lnode *current_url_node = urltable->front;
+	puts("b");
 	while (current_url_node)
 	{
 		url_w_string_links *current_url = (url_w_string_links *)current_url_node->data;
-		
+		puts("c");
 		// iterate through each url string in each urlinfo
 		while(current_url->outlinks.size)
 		{
+			puts("d");
 			string_llist_pop_front(&current_url->outlinks, string_link);
 			
 			// construct dummy urlinfo and see if it is in all links
-			
+			puts("e");
 			urlinfo *desired_url = (urlinfo *)makeURLfromlink(string_link, current_url->url);
 			urlinfo *found_url = (urlinfo *)btree_find(all_links, desired_url);
-			
+			puts("f");
 			// if found, link url to it
 			if (found_url)
 				llist_push_back(&current_url->url->outlinks, found_url);
@@ -226,9 +242,12 @@ void link_outlinks(llist *urltable, btree *all_links, btree *redirects)
 				if (found_redirect)
 					llist_push_back(&current_url->url->outlinks, found_redirect->valid_url);
 			}
+			puts("g");
 			freeURL(desired_url);
+			puts("h");
 		}
 		current_url_node = current_url_node->next;
+		puts("i");
 	}
 }
 
@@ -374,9 +393,16 @@ string_llist *get_potential_root_set(char *request, char *port_string,
 	
 	int resultsPerPage = 50;
 	int i;
-	for(i = 1; i < 50; i += resultsPerPage)
+	for(i = 1; i < ROOT_GRAPH_SIZE; i += resultsPerPage)
 	{
-		incrementResultsRequest(searchURL->path, pathclone, i, resultsPerPage);
+		// get number pages to request
+		int pages_to_request;
+		if (i + resultsPerPage <= ROOT_GRAPH_SIZE)
+			pages_to_request = resultsPerPage;
+		else
+			pages_to_request = ROOT_GRAPH_SIZE - i;
+		
+		incrementResultsRequest(searchURL->path, pathclone, i, pages_to_request);
 		
 		getRequest(searchURL, request);
 		//formatSearchRequest(searchURL, request);
@@ -571,8 +597,8 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
 	{
 		puts("connected!");
 		
-		// send http requrest
-		send(socket, request, strlen(request), 0);
+		// send http requrest (MSG__NOSIGNAL prevents exiting on SIGPIPE error)
+		send(socket, request, strlen(request), MSG_NOSIGNAL);
 		puts("sent request");
 		
 		// get code
@@ -789,9 +815,13 @@ void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, u
  */
 void back_link_request(char *request, urlinfo *engine, urlinfo *url, int num_links)
 {
+	char params[20];
+	sprintf(params, "&start=0&num=%d", num_links);
+	
 	strcpy(request, "GET /search?q=link:");
 	strcat(request, url->host);
-	strcat(request, "&start=0&num=50");
+	strcat(request, params);
+	//strcat(request, "&start=0&num=50");
 	
 	strcat(request, " HTTP/1.0\n");
 	
@@ -816,7 +846,7 @@ void get_back_links(urlinfo *engine, urlinfo *current_url, char *port_string, ch
 	{
 		puts("\nconnected to:\n");
 		
-		back_link_request(request, engine, current_url, 50);
+		back_link_request(request, engine, current_url, MAX_BACKLINKS);
 		
 		printf("sending backlink request\n%s", request);
 		send(socket, request, strlen(request), 0);
