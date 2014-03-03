@@ -269,7 +269,6 @@ void *btree_find(btree *tree, void *data)
 		while (1)
 		{
 			int compare = tree->comparefunction(data, current->data);
-            
 			if (!compare)
 			{	// found
 				break;

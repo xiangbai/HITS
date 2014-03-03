@@ -29,7 +29,7 @@
  * 
  * Macros should always be used to extract info, because this pattern is likely to change
  */
-#define URL_REGEX "(//)?(.+://)?([^/\\.]\\.)?(.+?\\.(com|coop|edu|net|org|uk))?/?((\\.\\./)*)((([^/]+/)*)?([^/\\.]+\\.[^%&]+)?[^%&]+)?"
+#define URL_REGEX "(//)?(.+://)?([^/\\.]\\.)?(.+?\\.(com|coop|edu|net|org|uk))?/?((\\.\\./)*)((([^/]+/)*)?([^/\\.]+\\.[^\\w]+)?[^%&]+)?"
 #define URL_REGEX_NUM_SUBSTRINGS 12
 #define URL_REGEX_DOMAIN 4
 #define URL_REGEX_UP_FOLDER 6
@@ -69,7 +69,7 @@ void url_w_links_free(url_w_string_links *url, int free_pointers)
 
 string_redirect *redirect_init(char *bad_link, urlinfo *valid_url)
 {
-	string_redirect *output = malloc(sizeof(string_redirect));
+	string_redirect *output = (string_redirect*)malloc(sizeof(string_redirect));
 	output->bad_link = malloc((strlen(bad_link)+1) * sizeof(char));
 	strcpy(output->bad_link, bad_link);
 	output->valid_url = valid_url;
@@ -107,9 +107,11 @@ int urlcompare(urlinfo *a, urlinfo *b)
 	int compare = strcmp(a->host, b->host);
 	if (compare)
 		return compare;
+	
 	compare = strcmp(a->path, b->path);
 	if (compare)
 		return compare;
+
 	return strcmp(a->filename, b->filename);	
 }
 
@@ -142,6 +144,7 @@ urlinfo *makeURL(char *givenAddress, urlinfo *currentURL)
 	else
 	{
 		newurl = (urlinfo *)malloc(sizeof(urlinfo));
+		newurl->host = NULL;
 		/*
 		 * NOTE:
 		 * The regex pattern in urlinfo.h searches for
@@ -207,7 +210,20 @@ urlinfo *makeURL(char *givenAddress, urlinfo *currentURL)
 			while(folders_up)
 			{
 				while (oldpath[index_to_concat] != '/')
+				{
 					index_to_concat--;
+					if (index_to_concat < 0)
+					{
+						/*
+						 * tried to go up too many directories and ran out.. BAD LINK
+						 * return null
+						 */
+						free(domain);
+						free(oldpath);
+						free(newurl);
+						return NULL;
+					}
+				}
 				index_to_concat--;
 				folders_up--;
 			}
@@ -295,12 +311,12 @@ char *url_tostring(urlinfo *url)
      */
 }
 
-urlinfo *freeURL(urlinfo *url)
+void freeURL(urlinfo *url)
 {
-	urlinfo *next = url->next;
+	//urlinfo *next = url->next;
 	free(url->host);
 	free(url->path);
 	free(url->filename);
 	free(url);
-	return next;
+	//return next;
 }

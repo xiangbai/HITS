@@ -7,7 +7,7 @@ OBJECTS = objectfiles/binarytree.o objectfiles/llist.o objectfiles/crawler_contr
 all: crawler
 
 crawler : $(OBJECTS)
-	$(CC) $(CFLAGS) $(OBJECTS) -o crawler -lpcre -lm
+	$(CC) $(CFLAGS) $(OBJECTS) -o crawler -lpcre -lm -g
 
 objectfiles/%.o: %.c
 	$(CC) -c $(CFLAGS) $< -o $@ 

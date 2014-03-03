@@ -6,6 +6,11 @@
 
 [x] fix linksfound in crawler_control so duplicates aren't added
 [x] add structure to hold HITS ranking for urls (or add to urlinfo)
-[ ] find solution to send request that hang for a long time
+[x] find solution to send request that hang for a long time
 [ ] still getting problme search links of the form www.google.com/search.*www.theActualLink.com
 [ ] add https capability
+
+BUGS
+[ ] freeURL being called on some urls prematurely.
+	-	urls in redirect tree are being freed, leading to segfaults when searching tree
+	-	Leads to double free error when freeURL is called appropriately

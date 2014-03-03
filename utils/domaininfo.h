@@ -58,6 +58,13 @@ typedef struct domainlink
  * Initialize regex for making domaininfo
  * This must be called before initializing domaininfos.
  */
+void domain_regex_init();
+
+/**
+ * Initialize domaininfo.
+ * 	domain: Provided domain.
+ * domaininfo will not keep subdomains.
+ */
 domaininfo *domaininfo_init(char *domain);
 
 /**

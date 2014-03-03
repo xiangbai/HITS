@@ -158,9 +158,9 @@ size_t string_llist_find(string_llist *list, char *string)
 	return output;
 }
 
-void string_llist_delete_node(string_llist *list, string_node **del_node)
+void string_llist_delete_node(string_llist *list, string_node *del_node)
 {
-    string_node *node = *del_node;
+    string_node *node = del_node;
     if (node != NULL)
     {
         if (node->prev == NULL && node->next == NULL) //1 item in list

@@ -21,7 +21,7 @@ typedef struct urlinfo
 	char *filename;
 	int searchdepth;
 	int redirectdepth;
-	struct urlinfo *next;
+	//struct urlinfo *next;
 	llist outlinks;
 	llist inlinks;
 	double hubScore;
@@ -91,7 +91,7 @@ char *url_tostring(urlinfo *url);
  * free memory allocated to a url and its data members
  * returns a pointer to url->next
  */
-urlinfo *freeURL(urlinfo *url);
+void freeURL(urlinfo *url);
 
 int urlcompare(urlinfo *a, urlinfo *b);
 

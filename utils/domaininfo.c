@@ -106,18 +106,13 @@ int compare_domainlink(domainlink* linka, domainlink* linkb)
 domaininfo *domaininfo_init(char *domainname)
 {
 	domaininfo *domain = (domaininfo *)malloc(sizeof(domaininfo));
-	//domain->name = (char *)malloc(sizeof(char) * (strlen(domainname) + 1));
 	domain->name = get_name_sans_subdomains(domainname);
-	//domain->numpages = 0;
-	//llist_init(&domain->pages, &compare_domain_name);
 	btree_init(&domain->outlinks, (void*)&compare_domain_to_link);
 	return domain;
 }
 
 void domaininfo_puturl(domaininfo *domain, urlinfo *url)
 {
-	//llist_push_back(&domain->pages, url);
-	//domain->numpages++;
 	domainlink* domain_found = (domainlink*)btree_find(&domain->outlinks, (void*)url);
 	if (domain_found)
 	{
