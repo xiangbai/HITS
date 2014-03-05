@@ -144,7 +144,6 @@ urlinfo *makeURL(char *givenAddress, urlinfo *currentURL)
 	else
 	{
 		newurl = (urlinfo *)malloc(sizeof(urlinfo));
-		newurl->host = NULL;
 		/*
 		 * NOTE:
 		 * The regex pattern in urlinfo.h searches for
@@ -176,7 +175,7 @@ urlinfo *makeURL(char *givenAddress, urlinfo *currentURL)
 
 		if (strlen(array[URL_REGEX_DOMAIN]))
 		{
-		// domain was provided; construct url using just given address
+			// domain was provided; construct url using just given address
 			newurl->host = array[URL_REGEX_DOMAIN];
 			newurl->path = newpath;
 		}
@@ -317,6 +316,11 @@ void freeURL(urlinfo *url)
 	free(url->host);
 	free(url->path);
 	free(url->filename);
+	
+	url->host = NULL;
+	url->path = NULL;
+	url->filename = NULL;
+	
 	free(url);
 	//return next;
 }

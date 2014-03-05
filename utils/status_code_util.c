@@ -33,10 +33,6 @@ int get_status_code(char *code)
 		statuscode = atoi(substrings[STATUS_CODE_NUMBER]);
 	}
 	
-	//printf("Response: ");
-	//printf(substrings[STATUS_CODE_FULL], stdout);
-	//putc('\n', stdout);
-	
 	return statuscode;
 }
 

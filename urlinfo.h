@@ -21,7 +21,6 @@ typedef struct urlinfo
 	char *filename;
 	int searchdepth;
 	int redirectdepth;
-	//struct urlinfo *next;
 	llist outlinks;
 	llist inlinks;
 	double hubScore;

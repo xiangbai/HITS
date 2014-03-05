@@ -38,8 +38,8 @@ char *userAgents[9] =
 	"Mozilla/5.0 (Macintosh; Intel Mac OS X 10.9; rv:25.0) Gecko/20100101 Firefox/25.0",
 	"Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36"};
 
-struct timeval rcv_timeout;
 
+string_redirect *find_redirect(char* url);
 char *loadPage(int socket);
 void clean_search_results(string_llist *tags_and_urls, string_llist *destination);
 void getRequest(urlinfo *url, char *request);
@@ -48,12 +48,14 @@ void formatSearchRequest(urlinfo *url, char *request);
 void getUserSearchQuery(char *path, char *save_query);
 void incrementResultsRequest(char *path, char *clone, int start, int numResults);
 string_llist *get_potential_root_set(char *request, char *port_string, parser *regexparser, urlinfo *searchURL, char *save_query);
-void link_outlinks(llist *urltable, btree *all_links, btree *redirects);
+void link_outlinks(llist *urltable, btree *all_links);
 void validate_url_string_list(urlinfo search_engine, string_llist *links_in_search, url_llist *redir_stack, btree *all_links, btree *redir_tree, llist *urls_w_strings_list, char *request, char *port_string, parser *regexparser);
-int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *all_links, btree *redir_tree, llist *urls_w_strings_list, char *request, char *port_string, parser *regexparser);
+int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *all_links, llist *urls_w_strings_list, char *request, char *port_string, parser *regexparser);
 void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, url_llist *redir_stack, btree *redir_tree, llist *urltable, char *request, char *port_string, parser *regexparser, string_llist *destination);
 void back_link_request(char *request, urlinfo *engine, urlinfo *url, int num_links);
 void get_back_links(urlinfo *search_engine, urlinfo *current_url, char *port_string, char *request, parser *regexparser, btree *all_links, string_llist *destination);
+
+
 
 //!is_intrinsic requires the global parser intrin_parser be initialized in main before being called
 int is_intrinsic(urlinfo *old_page, urlinfo *new_page);
@@ -62,6 +64,8 @@ parser *intrin_parser;
 
 // globally available data structures
 btree domains;		// hold domaininfos, allowing us to cap links from one domain to another
+btree redirects;	// holds string_redirects
+struct timeval rcv_timeout;
 
 /* main routine for testing our crawler's funcitonality */
 int main()
@@ -87,7 +91,6 @@ int main()
 	// Declare structures for link processing
 	llist urltable;             // llist of url_w_string_list
 	btree linksfound;           // for quick finding so we don't add redunant urls to linkstocheck
-	btree redirects;            // holds string_redirects
 	url_llist redir_stack;      // holds redirected urls
 	string_llist backlinks;     // holds backlinks of urls as strings
 	
@@ -146,14 +149,8 @@ int main()
 	validate_outlinks_get_backlinks(&search_engine, &linksfound, &redir_stack, &redirects,
 									&urltable, request,port_string, regexparser, &backlinks);
 	
-	/*TEMPORARILY DISABLE THE ADDING OF BACKLINKS
-	 //Validate backlinks and populate
-	 validate_url_string_list(search_engine, &backlinks, &redir_stack, &linksfound, &redirects,
-	 &urltable, request, port_string, regexparser);
-	 */
-	
 	//Link outlinks of valid urls to valid urls
-	link_outlinks(&urltable, &linksfound, &redirects);
+	link_outlinks(&urltable, &linksfound);
 	
 	puts("linked!");
 	
@@ -211,7 +208,7 @@ int main()
  * Goes through all of the potential string outlinks in the urltable and searches for them
  * in our data structures. If found the url is pushed to the outlinks of the corresponding url in the urltable
  */
-void link_outlinks(llist *urltable, btree *all_links, btree *redirects)
+void link_outlinks(llist *urltable, btree *all_links)
 {
 	puts("Linking Outlinks!");
 	char string_link[BUFFER_SIZE];
@@ -240,6 +237,8 @@ void link_outlinks(llist *urltable, btree *all_links, btree *redirects)
 				// BUG 1: occationally crash on btree_find
 				printf("url host: %s\n", desired_url->host);
 				urlinfo *found_url = (urlinfo *)btree_find(all_links, desired_url);
+				
+				// free dummy variable
 				freeURL(desired_url);
 	
 				// if found, link url to it
@@ -247,12 +246,8 @@ void link_outlinks(llist *urltable, btree *all_links, btree *redirects)
 					llist_push_back(&current_url->url->outlinks, found_url);
 				else
 				{
-					
-					// construct dummy string_redirect and find it in redirects
-					string_redirect *desired_redirect = (string_redirect  *)redirect_init(string_link, NULL);
-					string_redirect *found_redirect = (string_redirect  *)btree_find(redirects, desired_redirect);
-					
-					redirect_free(desired_redirect);
+					// find if url is in redirect tree
+					string_redirect *found_redirect = find_redirect(string_link);
 					
 					if (found_redirect)
 						llist_push_back(&current_url->url->outlinks, found_redirect->valid_url);
@@ -261,6 +256,22 @@ void link_outlinks(llist *urltable, btree *all_links, btree *redirects)
 		}
 		current_url_node = current_url_node->next;
 	}
+}
+
+string_redirect *find_redirect(char* url)
+{
+	// construct dummy redirect
+	string_redirect *desired_redirect = redirect_init(url, NULL);
+	
+	// attempt to find existing redirect with the same url
+	string_redirect *found = (string_redirect*)btree_find(&redirects, desired_redirect);
+	
+	// free the dummy redirect
+	redirect_free(desired_redirect);
+	free(desired_redirect);
+	
+	// return the found url
+	return found;
 }
 
 /*
@@ -554,14 +565,14 @@ void getUserSearchQuery(char *path, char *save_query)
  */
 void add_links_to_redirect_tree(btree *redir_tree, url_llist *redir_stack, urlinfo *valid_url)
 {
-	urlinfo *temp = (urlinfo*)url_llist_pop_front(redir_stack);
+	urlinfo *temp = url_llist_pop_front(redir_stack);
 	struct string_redirect *good_bad;
 	while (redir_stack->size)
 	{
 		good_bad = redirect_init(url_tostring(temp), valid_url);
 		btree_insert(redir_tree, good_bad);
 		freeURL(temp);
-		temp = (urlinfo*)url_llist_pop_front(redir_stack);
+		temp = url_llist_pop_front(redir_stack);
 	}
 	
 }
@@ -590,7 +601,7 @@ void add_links_to_redirect_tree(btree *redir_tree, url_llist *redir_stack, urlin
  *                 1 = Valid new link. Inserted into all_links. redir_tree entries added if redirects occurred
  *                 2 = Redirect to existing link. No new links added but NEW redir_tree entries added
  */
-int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *all_links, btree *redir_tree, llist *urls_w_strings_list, char *request, char *port_string, parser *regexparser)
+int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *all_links, llist *urls_w_strings_list, char *request, char *port_string, parser *regexparser)
 {
 	/*
 	 * INITIAL SETUP: Attempt to connect to cur_url and download the html
@@ -643,7 +654,7 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
 			btree_insert(all_links, cur_url);
 			
 			// insert into redir_links btree if necessary and free links
-			add_links_to_redirect_tree(redir_tree, redir_stack, cur_url);
+			add_links_to_redirect_tree(&redirects, redir_stack, cur_url);
 			
 			free(code);
 			close(socket);
@@ -676,7 +687,7 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
 				freeURL(url_from_redirect); //duplicate url so we need to free it
 				
 				//insert into redir_links btree if necessary and free links
-				add_links_to_redirect_tree(redir_tree, redir_stack, cur_url);
+				add_links_to_redirect_tree(&redirects, redir_stack, cur_url);
 				free(redirect_url_string);
 				free(code);
 				close(socket);
@@ -692,7 +703,7 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
 				
 				free(code);
 				
-				int ret_val = validate_url_and_populate(url_from_redirect, redir_stack, all_links, redir_tree,
+				int ret_val = validate_url_and_populate(url_from_redirect, redir_stack, all_links,
 														urls_w_strings_list, request,port_string, regexparser);
 				close(socket);
 				return ret_val;
@@ -739,19 +750,20 @@ void validate_url_string_list(urlinfo origin_url, string_llist *links_in_search,
 		if (!url_from_search)	// unable to construct url
 			continue;
 		else if (btree_find(all_links, url_from_search)) //link already in all_links
+		{
 			freeURL(url_from_search);
+		}
 		else
 		{
-			// construct dummy string_redirect and find it in redirects
-			string_redirect *desired_redirect = (string_redirect *)redirect_init(link_in_search, NULL);
-			string_redirect *found_redirect = (string_redirect *)btree_find(redir_tree, desired_redirect);
-			
-			redirect_free(desired_redirect); //if we didn't find the redirect, that DOESN'T mean it's a valid url or redirect
+			// check if url is in redirect tree
+			string_redirect *found_redirect = find_redirect(link_in_search);
 			
 			if (found_redirect)
+			{
 				freeURL(url_from_search);
+			}
 			else
-				validate_url_and_populate(url_from_search, redir_stack, all_links, redir_tree,
+				validate_url_and_populate(url_from_search, redir_stack, all_links, 
 										  urls_w_strings_list, request, port_string, regexparser);
 		}
 	}
@@ -798,11 +810,8 @@ void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, u
 					printf("is found? %d\n", (found_url)? 1: 0);
 					if (!found_url) // if NOT found in all_links, check redir_tree
 					{
-						// construct dummy string_redirect and find it in redirects
-						string_redirect *desired_redirect = redirect_init(string_link, NULL);
-						string_redirect *found_redirect = (string_redirect *)btree_find(redir_tree, desired_redirect);
-						
-						redirect_free(desired_redirect);
+						// check if url is in redirect tree
+						string_redirect *found_redirect = find_redirect(string_link);
 						
 						//if NOT found in redir_tree
 						if (!found_redirect)
@@ -839,7 +848,7 @@ void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, u
 							if (num_domain_links < MAX_DOMAIN_TO_DOMAIN)
 							{
 								domaininfo_puturl(fromdomain, desired_url);
-								validate_url_and_populate(desired_url, redir_stack, all_links, redir_tree, urltable, request, port_string, regexparser);
+								validate_url_and_populate(desired_url, redir_stack, all_links, urltable, request, port_string, regexparser);
 								//goto success;
 								link_added = 1;
 							}
