@@ -129,21 +129,22 @@ int main()
 	string_llist *links_in_search;
 	links_in_search = get_potential_root_set(request, port_string, regexparser,
 											 &search_engine, search_string);
+	
 	//Validate and populate the links in links_in_search, which is the potential root set
 	validate_url_string_list(search_engine, links_in_search, &redir_stack, &linksfound,
 							 &redirects, &urltable, request, port_string, regexparser);
 
-/*
-	puts("ROOT SET");
+/*	
+	printf("ROOT SET: got %d / %d\n", linksfound.numElems, ROOT_GRAPH_SIZE);
 	urlinfo** linkstoshow = (urlinfo**)btree_toarray(&linksfound);
 	int j;
 	for (j = 0; j < linksfound.numElems; j++)
-		printf("url: %s %s %s\n \tdepth: %d\n\n", 
-				linkstoshow[j]->host, linkstoshow[j]->path, linkstoshow[j]->filename, linkstoshow[j]->searchdepth);
+		printf("url: %s %s %s\n", 
+				linkstoshow[j]->host, linkstoshow[j]->path, linkstoshow[j]->filename);
 	
 	while(1);
 */
-	
+
 	//TEMPORARILY DISABLE THE GETTING OF BACKLINKS W/IN THIS FUNCTION
 	//Validate and populate the outlinks of the root set and get potential backlinks from root set
 	validate_outlinks_get_backlinks(&search_engine, &linksfound, &redir_stack, &redirects,
@@ -240,7 +241,8 @@ void link_outlinks(llist *urltable, btree *all_links)
 				
 				// free dummy variable
 				freeURL(desired_url);
-	
+				desired_url = NULL;
+
 				// if found, link url to it
 				if (found_url)
 					llist_push_back(&current_url->url->outlinks, found_url);

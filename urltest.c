@@ -27,11 +27,18 @@ urlinfo *getparts(char *string)
 	
 	// make the url (if prev != NULL, relative addresses may be passed in string
 	current = makeURL(string, prev);
-	
-	// print selected substrings
-	printf("Domain: %s\n", current->host);
-	printf("Path: %s\n", current->path);
-	printf("File: %s\n\n", current->filename);
+
+	if (current)
+	{	
+		// print selected substrings
+		printf("Domain: %s\n", current->host);
+		printf("Path: %s\n", current->path);
+		printf("File: %s\n\n", current->filename);
+	}
+	else
+	{
+		puts("invalid url");
+	}
 
 	return current;
 }
@@ -48,5 +55,6 @@ int main(void)
 	getparts("/folder3/newerfile.txt");
 	getparts("../newfolder/horiz.php");
 	getparts("/../../upone.php");
+	getparts("../../wrong.txt");
 
 }

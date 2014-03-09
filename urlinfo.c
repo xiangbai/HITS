@@ -29,7 +29,11 @@
  * 
  * Macros should always be used to extract info, because this pattern is likely to change
  */
-#define URL_REGEX "(//)?(.+://)?([^/\\.]\\.)?(.+?\\.(com|coop|edu|net|org|uk))?/?((\\.\\./)*)((([^/]+/)*)?([^/\\.]+\\.[^\\w]+)?[^%&]+)?"
+
+#define URL_REGEX "(//)?(.+://)?([^/\\.]\\.)?(.+?\\.(com|coop|edu|net|org|uk))?/?((\\.\\./)*)((([^/&]+/)*)?([^&/\\.]+\\.\\w+)?\\w*?)?([&\\?].*)?$"
+
+//#define URL_REGEX "(//)?(.+://)?([^/\\.]\\.)?(.+?\\.(com|coop|edu|net|org|uk))?/?((\\.\\./)*)((([^/]+/)*)?([^/\\.]+\\.[^%&]+)?[^%&]+)?"
+
 #define URL_REGEX_NUM_SUBSTRINGS 12
 #define URL_REGEX_DOMAIN 4
 #define URL_REGEX_UP_FOLDER 6
@@ -83,20 +87,26 @@ void redirect_free(string_redirect *redirect)
 
 urlinfo *makeURLfromlink(char *givenAddress, urlinfo *currentURL)
 {
-        urlinfo *newurl = makeURL(givenAddress, currentURL);
-        
-        newurl->searchdepth = (currentURL)? currentURL->searchdepth + 1: 0;
-        newurl->redirectdepth = (currentURL)? currentURL->redirectdepth: 0;
-        
-        return newurl;
+	urlinfo *newurl = makeURL(givenAddress, currentURL);
+       
+	if (newurl)
+	{
+		newurl->searchdepth = (currentURL)? currentURL->searchdepth + 1: 0;
+		newurl->redirectdepth = (currentURL)? currentURL->redirectdepth: 0;
+	}
+
+	return newurl;
 }
 
 urlinfo *makeURLfromredirect(char *givenAddress, urlinfo *currentURL)
 {
 	urlinfo *newurl = makeURL(givenAddress, currentURL);
 
-	newurl->searchdepth = (currentURL)? currentURL->searchdepth: 0;
-	newurl->redirectdepth = currentURL->redirectdepth + 1;
+	if (newurl)
+	{
+		newurl->searchdepth = (currentURL)? currentURL->searchdepth: 0;
+		newurl->redirectdepth = currentURL->redirectdepth + 1;
+	}
 	
 	return newurl;
 }
@@ -154,6 +164,7 @@ urlinfo *makeURL(char *givenAddress, urlinfo *currentURL)
 		 */
 		int pathlen = strlen(array[URL_REGEX_PATH]);
 		int filelen = strlen(array[URL_REGEX_FILE]);
+		
 		if (pathlen)
 			array[URL_REGEX_PATH][pathlen - 1] = '\0';
 
@@ -204,14 +215,24 @@ urlinfo *makeURL(char *givenAddress, urlinfo *currentURL)
 			 * as long as the first three characters in new path are "../":
 			 *	go up a directory in old url and move past the "../" in new path
 			 */
-			size_t index_to_concat = strlen(oldpath) - 1;
-			//size_t new_path_index = folders_up * 3;
+			int index_to_concat = strlen(oldpath) - 1;
 			while(folders_up)
 			{
+				if (index_to_concat == 0)
+				{
+					/*
+					 * tried to go up too many directories and ran out.. BAD LINK
+					 * return null
+					 */
+					free(domain);
+					free(oldpath);
+					free(newurl);
+					return NULL;
+				}
+				
 				while (oldpath[index_to_concat] != '/')
 				{
-					index_to_concat--;
-					if (index_to_concat < 0)
+					if (index_to_concat == 0)
 					{
 						/*
 						 * tried to go up too many directories and ran out.. BAD LINK
@@ -222,9 +243,10 @@ urlinfo *makeURL(char *givenAddress, urlinfo *currentURL)
 						free(newurl);
 						return NULL;
 					}
+					index_to_concat--;
 				}
-				index_to_concat--;
 				folders_up--;
+				index_to_concat--;
 			}
 			
 			index_to_concat++;
@@ -249,6 +271,13 @@ urlinfo *makeURL(char *givenAddress, urlinfo *currentURL)
 	
 	if (newurl)
 	{
+		// test if valid info
+		if (newurl->host == NULL || strlen(newurl->host) == 0)
+		{
+			report_error("FAILED to MAKE URL for unknown reason");
+			exit(1);
+		}
+		
 		// make linked list of outgoing links and incoming links
 		llist_init(&newurl->outlinks, (void *)urlcompare);
 		llist_init(&newurl->inlinks, (void *)urlcompare);

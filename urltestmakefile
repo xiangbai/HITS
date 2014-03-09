@@ -1,2 +1,2 @@
 all:
-	gcc urltest.c utils/general_utils.c urlinfo.c utils/string_linked_list.c utils/parser.c -o urltest -lpcre
+	gcc urltest.c utils/general_utils.c urlinfo.c utils/string_linked_list.c utils/parser.c utils/llist.c -o urltest -lpcre
