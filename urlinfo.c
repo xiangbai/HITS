@@ -218,7 +218,7 @@ urlinfo *makeURL(char *givenAddress, urlinfo *currentURL)
 			int index_to_concat = strlen(oldpath) - 1;
 			while(folders_up)
 			{
-				if (index_to_concat == 0)
+				if (index_to_concat <= 0)
 				{
 					/*
 					 * tried to go up too many directories and ran out.. BAD LINK
@@ -275,6 +275,7 @@ urlinfo *makeURL(char *givenAddress, urlinfo *currentURL)
 		if (newurl->host == NULL || strlen(newurl->host) == 0)
 		{
 			report_error("FAILED to MAKE URL for unknown reason");
+			puts("exiting");
 			exit(1);
 		}
 		
