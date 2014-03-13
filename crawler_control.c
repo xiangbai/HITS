@@ -343,14 +343,6 @@ int get_links(char *code, parser *p, string_llist *list, int *substrings, int nu
  */
 char *loadPage(int socket)
 {
-	// set timeout on receiving data
-	if (setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, (char*)&rcv_timeout, sizeof(rcv_timeout)) < 0)
-	{
-		// return null if unable to set timeout
-		report_error("unable to set socket timeout");
-		return NULL;
-	}
-	
 	// declare variables
 	char buffer[BUFFER_SIZE];
 	int bytes_received = 0;
