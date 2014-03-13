@@ -30,6 +30,8 @@
  * Macros should always be used to extract info, because this pattern is likely to change
  */
 
+#define DISABLE_RELATIVE_LINKS 1
+
 #define URL_REGEX "(//)?(.+://)?([^/\\.]\\.)?(.+?\\.(com|coop|edu|net|org|uk))?/?((\\.\\./)*)((([^/&]+/)*)?([^&/\\.]+\\.\\w+)?\\w*?)?([&\\?].*)?$"
 
 //#define URL_REGEX "(//)?(.+://)?([^/\\.]\\.)?(.+?\\.(com|coop|edu|net|org|uk))?/?((\\.\\./)*)((([^/]+/)*)?([^/\\.]+\\.[^%&]+)?[^%&]+)?"
@@ -192,7 +194,9 @@ urlinfo *makeURL(char *givenAddress, urlinfo *currentURL)
 		}
 		else
 		{
-		// relative path; construct url using the current url and the given address
+			// relative path
+			if (DISABLE_RELATIVE_LINKS)
+				return NULL;
 			
 			// get number of folders to go up
 			int folders_up = strlen(array[URL_REGEX_UP_FOLDER]) / 3;

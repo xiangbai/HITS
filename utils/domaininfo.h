@@ -76,6 +76,14 @@ domaininfo *domaininfo_init(char *domain);
 void domaininfo_puturl(domaininfo *domain, urlinfo *url);
 
 /**
+ * Find link to url from domaininfo.
+ * Returns null if domaininfo doesn't link to url
+ *	domain: domain that may hold the link
+ *	url: urlinfo to find. If found, a pointer to that copy will be returned
+ */
+urlinfo* domaininfo_findurl(domaininfo *domain, urlinfo *url);
+
+/**
  * Get the number links from one domain to another
  *	domain:	domain holding the links
  *	link:	domain linked to by domain
@@ -87,7 +95,14 @@ int domaininfo_numlinks_to_domain(domaininfo *domain, domaininfo *link);
  * Returns 1 if provided domains have the same name.
  * Returns 0 otherwise
  */
-int compare_domain_name(domaininfo *a, domaininfo *b);
+int compare_domain(domaininfo *a, domaininfo *b);
+
+/*
+ * Compare two domain names
+ * Returns 1 if provided domains are equivalent
+ * Returns 0 otherwise.
+ */
+int compare_domain_name(char *a, char *b);
 
 /**
  * Free data held by domain

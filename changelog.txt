@@ -26,14 +26,12 @@
 			this returns a linked list of <a> tags and urls in alternating order
 		- clean_links puts urls into linkstofind if the corresponding <a> meets the criteria.
 
-<<<<<<< HEAD
 01/12/2014:	Fixed few memory leaks and added functions for freeing collections and their elements
 		- Memory leaks were caused by not freeing pointers returned from functions
 		  ..and from linked lists not being cleared
 		- Binarytree and all implementations of linked list now have associated free functions
 			These may either free just the collection
 			..or the collection, and the data it holds
-=======
 01/16/2014	Added functions for caching search results
 		- These are not implemented in crawler_control.c yet
 		- Requires that the folder to hold cached searches be created manually ("mkdir searches")
@@ -41,4 +39,4 @@
 			stores a master file listing all cached searches
 			eache search is stored as a separate file
 			spaces in searches are replaced with underscores
->>>>>>> caching
+

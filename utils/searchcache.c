@@ -185,7 +185,7 @@ void setcache(char *folder, char *searchstring, url_llist *urls)
 		 */
 		// write header
 		char *urlstring = url_tostring(url);
-		fprintf(file, "%s %d\n", urlstring, url->outlinks.size);
+		fprintf(file, "%s %d\n ", urlstring, url->outlinks.size);
 		free(urlstring);
 		// write links
 		lnode *outlink_node = url->outlinks.front;
@@ -199,8 +199,8 @@ void setcache(char *folder, char *searchstring, url_llist *urls)
 			fprintf(file, "%lu ", iurl->index);
 			outlink_node = outlink_node->next;
 		}
-		if (url->outlinks.size)
-			fprintf(file, "\n");
+		//if (url->outlinks.size)
+		fprintf(file, "\n");
 		node = node->next;
 	}
 

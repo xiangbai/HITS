@@ -54,12 +54,16 @@ char *get_name_sans_subdomains(char *domain_name)
  *
  * Note: This is not used internally, but will have functionality in collections of domaininfos.
  */
-int compare_domain_name(domaininfo *a, domaininfo *b)
+int compare_domain(domaininfo *a, domaininfo *b)
 {
 	return strcmp(a->name, b->name);
+}
+
+int compare_domain_name(char *a, char *b)
+{
 	// get domains without subdomains
-	char *domain_a = get_name_sans_subdomains(a->name);
-	char *domain_b = get_name_sans_subdomains(b->name);
+	char *domain_a = get_name_sans_subdomains(a);
+	char *domain_b = get_name_sans_subdomains(b);
 
 	// get comparison
 	int compare_val = strcmp(domain_a, domain_b);
@@ -132,6 +136,15 @@ void domaininfo_puturl(domaininfo *domain, urlinfo *url)
 		// add newdomain to outlinks
 		btree_insert(&domain->outlinks, newdomain);
 	}
+}
+
+urlinfo* domaininfo_findurl(domaininfo *domain, urlinfo *url)
+{
+	domainlink* domain_found = (domainlink*)btree_find(&domain->outlinks, (void*)url);
+	if (domain_found)
+		return (urlinfo*)llist_find(&domain_found->pages, url);
+	
+	return NULL;
 }
 
 int domaininfo_numlinks_to_domain(domaininfo *domain, domaininfo *link)
