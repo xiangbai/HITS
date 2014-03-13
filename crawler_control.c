@@ -69,7 +69,6 @@ int is_intrinsic(urlinfo *old_page, urlinfo *new_page);
 // globally available data structures
 btree domains;		// hold domaininfos, allowing us to cap links from one domain to another
 btree redirects;	// holds string_redirects
-struct timeval rcv_timeout;
 
 /* main routine for testing our crawler's funcitonality */
 int main()
@@ -89,10 +88,6 @@ int main()
 
 	// initialize domain regex (required before domaininfo may be used)
 	domain_regex_init();
-		
-	// set timeout value for receiving data from pages
-	rcv_timeout.tv_sec = 10;
-	rcv_timeout.tv_usec = 0;
 	
 	// initialize parsers
 	regexparser = init_parser(pattern);
@@ -386,14 +381,6 @@ int get_links(char *code, parser *p, string_llist *list, int *substrings, int nu
  */
 char *loadPage(int socket)
 {
-	// set timeout on receiving data
-	if (setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, (char*)&rcv_timeout, sizeof(rcv_timeout)) < 0)
-	{
-		// return null if unable to set timeout
-		report_error("unable to set socket timeout");
-		return NULL;
-	}
-	
 	// declare variables
 	char buffer[BUFFER_SIZE];
 	int bytes_received = 0;
@@ -666,7 +653,13 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
 		puts("connected!");
 		
 		// send http requrest (MSG__NOSIGNAL prevents exiting on SIGPIPE error)
+#if defined(SO_NOSIGPIPE)
+		send(socket, request, strlen(request), 0);
+#elif defined(MSG_NOSINGAL)
 		send(socket, request, strlen(request), MSG_NOSIGNAL);
+#else 
+		report_error("This program requires systems to define MSG_NOSIGNAL or SO_NOSIGPIPE");
+#endif
 		puts("sent request");
 		
 		// get code

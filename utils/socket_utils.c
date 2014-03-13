@@ -57,6 +57,13 @@ int connect_socket(char *host_string, char *port_string, FILE *stream)
 			return NULL;
 		}
 		
+#if defined(SO_NOSIGPIPE)
+		int val = 1;
+		setsockopt(socket_id, SOL_SOCKET, SO_NOSIGPIPE, &val, sizeof(int));
+#elif !defined(MSG_NOSIGNAL)
+		report_error("This program requires systems to have definitions for SO_NOSIGPIPE or MSG_NOSIGNAL");
+#endif
+		
 		// connect to server (break if connection is successful)
 		int connectval = connect(socket_id, current->ai_addr, current->ai_addrlen);
 		if (connectval <= 0)
