@@ -623,7 +623,13 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
 		puts("connected!");
 		
 		// send http requrest (MSG__NOSIGNAL prevents exiting on SIGPIPE error)
+#if defined(SO_NOSIGPIPE)
+		send(socket, request, strlen(request), 0);
+#elif defined(MSG_NOSINGAL)
 		send(socket, request, strlen(request), MSG_NOSIGNAL);
+#else 
+		report_error("This program requires systems to define MSG_NOSIGNAL or SO_NOSIGPIPE");
+#endif
 		puts("sent request");
 		
 		// get code
