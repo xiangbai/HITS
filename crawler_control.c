@@ -65,7 +65,6 @@ parser *intrin_parser;
 // globally available data structures
 btree domains;		// hold domaininfos, allowing us to cap links from one domain to another
 btree redirects;	// holds string_redirects
-struct timeval rcv_timeout;
 
 /* main routine for testing our crawler's funcitonality */
 int main()
@@ -79,10 +78,6 @@ int main()
 
 	// initialize domain regex (required before domaininfo may be used)
 	domain_regex_init();
-		
-	// set timeout value for receiving data from pages
-	rcv_timeout.tv_sec = 10;
-	rcv_timeout.tv_usec = 0;
 	
 	// initialize parsers
 	regexparser = init_parser(pattern);
