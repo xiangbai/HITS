@@ -56,6 +56,7 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
 void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, url_llist *redir_stack, btree *redir_tree, llist *urltable, char *request, char *port_string, parser *regexparser, string_llist *destination);
 void back_link_request(char *request, urlinfo *engine, urlinfo *url, int num_links);
 void get_back_links(urlinfo *search_engine, urlinfo *current_url, char *port_string, char *request, parser *regexparser, btree *all_links, string_llist *destination);
+void clean_outlinks(url_w_string_links *current_url, int add_urls);
 
 #ifdef LOG_INTRINSIC_VALUE
 	FILE *intrinsic_file;
@@ -69,6 +70,11 @@ int is_intrinsic(urlinfo *old_page, urlinfo *new_page);
 // globally available data structures
 btree domains;		// hold domaininfos, allowing us to cap links from one domain to another
 btree redirects;	// holds string_redirects
+llist urltable;             // llist of url_w_string_list
+btree linksfound;           // for quick finding so we don't add redunant urls to linkstocheck
+url_llist redir_stack;      // holds redirected urls
+
+parser *regexparser;
 
 /* main routine for testing our crawler's funcitonality */
 int main()
@@ -80,7 +86,6 @@ int main()
 #endif
 
 	char pattern[] = "<a [^>]*?href *= *[\'\"]([^\"\'>]+)[\'\"].*?>";
-	parser *regexparser;
 	char request[BUFFER_SIZE + 100];
 	char port_string[3];
 	strcpy(port_string, PORT_80);
@@ -94,9 +99,6 @@ int main()
 	//intrin_parser = init_parser(intrin_pattern);
 	
 	// Declare structures for link processing
-	llist urltable;             // llist of url_w_string_list
-	btree linksfound;           // for quick finding so we don't add redunant urls to linkstocheck
-	url_llist redir_stack;      // holds redirected urls
 	string_llist backlinks;     // holds backlinks of urls as strings
 	
 	// Initialize structures
@@ -136,9 +138,13 @@ int main()
 											 &search_engine, search_string);
 	
 	//Validate and populate the links in links_in_search, which is the potential root set
-	validate_url_string_list(search_engine, links_in_search, &redir_stack, &linksfound,
-							 &redirects, &urltable, request, port_string, regexparser);
+	validate_url_string_list(search_engine, links_in_search, 
+			&redir_stack, &linksfound, &redirects, 
+			&urltable, request, port_string, regexparser);
 
+	// get last node in urltable
+	lnode *last_in_root = urltable.back;
+	
 /*	
 	printf("ROOT SET: got %d / %d\n", linksfound.numElems, ROOT_GRAPH_SIZE);
 	urlinfo** linkstoshow = (urlinfo**)btree_toarray(&linksfound);
@@ -150,10 +156,18 @@ int main()
 	while(1);
 */
 
-	//TEMPORARILY DISABLE THE GETTING OF BACKLINKS W/IN THIS FUNCTION
 	//Validate and populate the outlinks of the root set and get potential backlinks from root set
 	validate_outlinks_get_backlinks(&search_engine, &linksfound, &redir_stack, &redirects,
-									&urltable, request,port_string, regexparser, &backlinks);
+									&urltable, request, port_string, regexparser, &backlinks);
+
+	// clean the outlink strings in the newly added entries to urltable
+	lnode *current_node = last_in_root->next;
+	while (current_node)
+	{
+		url_w_string_links *current_url = current_node->data;
+		clean_outlinks(current_url, 0);
+		current_node = current_node->next;
+	}
 	
 	//Link outlinks of valid urls to valid urls
 	link_outlinks(&urltable, &linksfound);
@@ -808,11 +822,132 @@ void validate_url_string_list(urlinfo origin_url, string_llist *links_in_search,
 }
 
 /*
+ * Remove any outlinks that meet any of the following criteria:
+ * 		intrinsic
+ * 		possible mass endorsement
+ * 		invalid url
+ * For all urls that are kept, validate_url_and_populate is called
+ */ 
+void clean_outlinks(url_w_string_links *current_url, int add_urls)
+{
+		// iterate through each url string in each urlinfo and validate
+		int num_outlinks_to_check = current_url->outlinks.size;
+		char new_string_link[BUFFER_SIZE];
+		char request[BUFFER_SIZE + 100];
+		
+		#ifdef LOG_INTRINSIC_VALUE
+			fprintf(intrinsic_file, "Links from: %s\n", url_tostring(current_url->url));
+		#endif
+		
+		while (num_outlinks_to_check > 0)
+		{
+			string_llist_pop_front(&current_url->outlinks, new_string_link);
+			
+			#ifdef LOG_INTRINSIC_VALUE
+				fprintf(intrinsic_file, "\t -->: %s\n", new_string_link);
+			#endif
+		
+			// construct dummy urlinfo and see if it is in all links
+			urlinfo *desired_url = makeURLfromlink(new_string_link, current_url->url);
+			
+			if (desired_url)
+			{
+				int intrin_val = is_intrinsic(current_url->url, desired_url);
+				int link_added = 0;
+				int okay_to_link = 0;
+				urlinfo *found_url = (urlinfo *)btree_find(&linksfound, desired_url);
+				
+				if (!intrin_val) //if NOT intrinsic
+				{
+					#ifdef LOG_INTRINSIC_VALUE
+						fprintf(intrinsic_file, "\tnot intrin: %s -- %s\n", new_string_link, url_tostring(current_url->url));
+					#endif
+					/*
+					 * See if domain of current url may still link to domain of new url
+					 */
+					// make dummy domaininfos for searching purposes
+					domaininfo *desired_domain = domaininfo_init(current_url->url->host);
+					domaininfo *fromdomain = btree_find(&domains, desired_domain);
+					
+					if (fromdomain == NULL)	// if desired domain not in domains, it is the new fromdomain
+					{
+						fromdomain = desired_domain;		// set fromdomain for use later in function
+						btree_insert(&domains, fromdomain);	// insert new domain into tree
+					}
+					else
+					{	// desired_domain is a duplicate; free it
+						freedomain(desired_domain);
+						free(desired_domain);
+					}
+	
+					// dummy domain for searching
+					domaininfo *todomain = domaininfo_init(desired_url->host);
+					int num_domain_links = domaininfo_numlinks_to_domain(fromdomain, todomain);
+
+					// free dummy to-domain
+					freedomain(todomain);
+					free(todomain);
+	
+					// if there is room for more links to new domain, add the link to all_links and domain.outlinks
+					if (num_domain_links < MAX_DOMAIN_TO_DOMAIN)
+					{
+						if (found_url) // if NOT found in all_links, check redir_tree
+						{
+							okay_to_link = 1;
+						}
+						else
+						{
+							// check if url is in redirect tree
+							string_redirect *found_redirect = find_redirect(new_string_link);
+							
+							//if NOT found in redir_tree
+							if (found_redirect)
+							{
+								found_url = found_redirect->valid_url;
+								okay_to_link = 1;
+							}
+							else if (add_urls)
+							{
+								char port[3] = PORT_80;
+								found_url = desired_url;
+								int populate_val = validate_url_and_populate(found_url, &redir_stack, 
+										&linksfound, &urltable, request, port, regexparser);
+
+								if (populate_val > 0)
+								{
+									link_added = 1;
+									okay_to_link = 1;
+								}
+							}
+						}
+
+						if (okay_to_link)
+						{
+							#ifdef LOG_INTRINSIC_VALUE
+								fprintf(intrinsic_file, "adding %s\n", url_tostring(found_url));
+							#endif
+							string_llist_push_back(&current_url->outlinks, new_string_link);
+							domaininfo_puturl(fromdomain, found_url);
+						}
+					}
+				}
+				if (!link_added)
+				{
+					freeURL(desired_url);
+				}
+			}
+			
+			//free(new_string_link);
+			num_outlinks_to_check--;
+		}
+}
+
+/*
  * Interleaves validating the outlinks of a root set member and gathering potential backlinks from a root set member
  */
 void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, url_llist *redir_stack, btree *redir_tree, llist *urltable, char *request, char *port_string, parser *regexparser, string_llist *destination)
 {
-	char new_string_link[BUFFER_SIZE];
+	//char new_string_link[BUFFER_SIZE];
 	lnode *current_url_node = urltable->front;
 	url_w_string_links *current_url = (url_w_string_links *)current_url_node->data;
 	
@@ -828,33 +963,44 @@ void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, u
 		printf("PROGRESS: %s\n", progbar.display);
 		current_progress++;
 		
+		clean_outlinks(current_url, 1);
+/*		
 		// iterate through each url string in each urlinfo and validate
 		//string_node *current_outlink_node = current_url->outlinks.front;
 		int num_outlinks_to_check = current_url->outlinks.size;
 		//while (current_outlink_node)
+		
+		#ifdef LOG_INTRINSIC_VALUE
+			fprintf(intrinsic_file, "Links from: %s\n", url_tostring(current_url->url));
+		#endif
+		
+		
 		while (num_outlinks_to_check > 0)
 		{
 			string_llist_pop_front(&current_url->outlinks, new_string_link);
 			
+			#ifdef LOG_INTRINSIC_VALUE
+				fprintf(intrinsic_file, "\t -->: %s\n", new_string_link);
+			#endif
+		
 			// construct dummy urlinfo and see if it is in all links
 			urlinfo *desired_url = makeURLfromlink(new_string_link, current_url->url);
 			
 			if (desired_url)
 			{
-				
-				urlinfo *found_url = (urlinfo *)btree_find(all_links, desired_url);
 				int intrin_val = is_intrinsic(current_url->url, desired_url);
 				int link_added = 0;
 				int okay_to_link = 0;
+				urlinfo *found_url = (urlinfo *)btree_find(all_links, desired_url);
 				
 				if (!intrin_val) //if NOT intrinsic
 				{
 					#ifdef LOG_INTRINSIC_VALUE
 						fprintf(intrinsic_file, "\tnot intrin: %s -- %s\n", new_string_link, url_tostring(current_url->url));
 					#endif
-					/*
-					 * See if domain of current url may still link to domain of new url
-					 */
+					
+					// * See if domain of current url may still link to domain of new url
+					
 					// make dummy domaininfos for searching purposes
 					domaininfo *desired_domain = domaininfo_init(current_url->url->host);
 					domaininfo *fromdomain = btree_find(&domains, desired_domain);
@@ -909,11 +1055,6 @@ void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, u
 							}
 						}
 
-						//validate_url_and_populate(desired_url, redir_stack, all_links, urltable, request, port_string, regexparser);
-						//goto success;
-						//link_added = 1;
-						
-						
 						if (okay_to_link)
 						{
 							#ifdef LOG_INTRINSIC_VALUE
@@ -933,7 +1074,7 @@ void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, u
 			//free(new_string_link);
 			num_outlinks_to_check--;
 		} // end urlinfo outlinks loop
-		
+*/		
 		//do a backlink request on the current url
 		//get_back_links(search_engine, current_url->url, port_string, request, regexparser, all_links, destination);
 		current_url_node = current_url_node->next;
