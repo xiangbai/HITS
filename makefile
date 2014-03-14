@@ -9,8 +9,11 @@ all: crawler
 crawler : $(OBJECTS)
 	$(CC) $(CFLAGS) $(OBJECTS) -o crawler -lpcre -lm -g
 
-objectfiles/%.o: %.c
+objectfiles/crawler_control.o: crawler_control.c
+	$(CC) -c $(CFLAGS) $< -o $@
+ 
+objectfiles/%.o: %.c %.h 
 	$(CC) -c $(CFLAGS) $< -o $@ 
 
-objectfiles/%.o: utils/%.c
+objectfiles/%.o: utils/%.c utils/%.h 
 	$(CC) -c $(CFLAGS) $< -o $@
