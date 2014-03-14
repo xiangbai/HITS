@@ -57,6 +57,7 @@ void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, u
 void back_link_request(char *request, urlinfo *engine, urlinfo *url, int num_links);
 void get_back_links(urlinfo *search_engine, urlinfo *current_url, char *port_string, char *request, parser *regexparser, btree *all_links, string_llist *destination);
 void clean_outlinks(url_w_string_links *current_url, int add_urls);
+void print_url_table(llist *urltable, char *file_tag);
 
 #ifdef LOG_INTRINSIC_VALUE
 	FILE *intrinsic_file;
@@ -156,6 +157,8 @@ int main()
 	while(1);
 */
 
+	print_url_table(&urltable, "pre");
+	//TEMPORARILY DISABLE THE GETTING OF BACKLINKS W/IN THIS FUNCTION
 	//Validate and populate the outlinks of the root set and get potential backlinks from root set
 	validate_outlinks_get_backlinks(&search_engine, &linksfound, &redir_stack, &redirects,
 									&urltable, request, port_string, regexparser, &backlinks);
@@ -168,6 +171,8 @@ int main()
 		clean_outlinks(current_url, 0);
 		current_node = current_node->next;
 	}
+	
+	print_url_table(&urltable, "post");
 	
 	//Link outlinks of valid urls to valid urls
 	link_outlinks(&urltable, &linksfound);
@@ -295,6 +300,7 @@ void link_outlinks(llist *urltable, btree *all_links)
 				
 				// link current_url->url to outlink
 				if (outlink)
+				{
 					llist_push_back(&current_url->url->outlinks, outlink);
 				
 				#ifdef LOG_INTRINSIC_VALUE
@@ -302,10 +308,11 @@ void link_outlinks(llist *urltable, btree *all_links)
 					if (outlink)
 					{
 						fprintf(intrinsic_file, "%d: ", is_intrinsic(current_url->url, outlink));
-						fprintf(intrinsic_file, "linking: %s -> %s\n", 
+						fprintf(intrinsic_file, "linking: %s -> %s\n",
 								url_tostring(current_url->url), url_tostring(outlink));
 					}
 				#endif
+				}
 			}
 		}
 		current_url_node = current_url_node->next;
@@ -620,7 +627,6 @@ void add_links_to_redirect_tree(btree *redir_tree, url_llist *redir_stack, urlin
 		freeURL(temp);
 		temp = url_llist_pop_front(redir_stack);
 	}
-	
 }
 
 /*
@@ -722,15 +728,21 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
 		{
 			// set up new url from redirect info
 			char *redirect_url_string = get_300_location(code);
+			puts("got here");
 			printf("REDIRECT TO %s\n", redirect_url_string);
 			
-			urlinfo *url_from_redirect = makeURLfromredirect(redirect_url_string, cur_url);
+			urlinfo *url_from_redirect = NULL;
+			
+			if (redirect_url_string)
+				url_from_redirect = makeURLfromredirect(redirect_url_string, cur_url);
 			//redirect->searchdepth = newURL->searchdepth;
 			
 			url_llist_push_front(redir_stack, cur_url); // push cur_url to redirected urls stack
 			
-			//search for new url from redirect in all_links
-			urlinfo *url_from_all_links = (urlinfo*)btree_find(all_links, url_from_redirect);
+			
+			urlinfo *url_from_all_links = NULL;
+			if (url_from_redirect) //search for new url from redirect in all_links
+				url_from_all_links = (urlinfo*)btree_find(all_links, url_from_redirect);
 			
 			//CASE 2a: Redirect is an existing url. Delete the duplicate, create
 			//all redirect entries and insert into redir_tree
@@ -748,18 +760,32 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
 			
 			//CASE 2b: redirect is a NEW url: push cur_url to redir_stack and recursively call
 			//with url_from_redirect as new urlinfo param
-			else
+			else if (url_from_redirect)
 			{
 				//free unnecessary stuff before recursive call so we don't have excess memory build-up
 				free(redirect_url_string);
 				
 				free(code);
-				
+				close(socket);
 				int ret_val = validate_url_and_populate(url_from_redirect, redir_stack, all_links,
 														urls_w_strings_list, request,port_string, regexparser);
-				close(socket);
 				return ret_val;
 			}//END CASE 2b
+			
+			//CASE 2c: makeURLfromredirect returned NULL so dead END. Free structures and exit
+			else
+			{
+				free(code);
+				close(socket);
+				urlinfo *temp_url;
+				while (redir_stack->size)
+				{
+					puts("popping and freeing redir_stack");
+					temp_url = url_llist_pop_front(redir_stack);
+					freeURL(temp_url);
+				}
+				return 0;
+			}//END CASE 2c
 		} //END CASE 2
 		
 		//Case 3: NOT success AND NOT redirect so we have a DEAD END. Free structures and exit
@@ -796,7 +822,7 @@ void validate_url_string_list(urlinfo origin_url, string_llist *links_in_search,
 	while (links_in_search->size)
 	{
 		string_llist_pop_front(links_in_search, link_in_search);
-		puts("making link in validate_url_string_list");
+		puts("\n attempting to make link in validate_url_string_list");
 		urlinfo *url_from_search = makeURLfromlink(link_in_search, &origin_url);
 		
 		if (!url_from_search)	// unable to construct url
@@ -1205,3 +1231,36 @@ int is_intrinsic(urlinfo *old_page, urlinfo *new_page)
 	*/
 }
 
+void print_url_table(llist *urltable, char *file_tag)
+{
+	puts("in print_url_table");
+	FILE *fp;
+	char file_name[BUFFER_SIZE];
+	strcpy(file_name, "url_table_");
+	strcat(file_name, file_tag);
+	strcat(file_name, ".txt");
+	fp = fopen(file_name, "w");
+
+	lnode *current_url_node = urltable->front;
+	
+	
+	while(current_url_node)
+	{
+		url_w_string_links *current_url = (url_w_string_links *)current_url_node->data;
+		fprintf(fp, "\nURL: %s", url_tostring(current_url->url));
+		fprintf(fp,"\n\tOutlinks:");
+		string_node *temp_outlink = current_url->outlinks.front;
+		
+		while(temp_outlink)
+		{
+			fprintf(fp, "\n\t%s", temp_outlink->string);
+			temp_outlink = temp_outlink->next;
+		}
+		fprintf(fp, "\n");
+		current_url_node = current_url_node->next;
+
+	}
+	
+	fclose(fp);
+	
+}
