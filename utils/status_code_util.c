@@ -44,6 +44,8 @@ char *get_300_location(char *code)
 		location_regex = init_parser(LOCATION_ERROR_REGEX);
 
 	char *substrings[2];
+	substrings[0] = NULL;
+	substrings[1] = NULL;
 	substrings_to_array(location_regex, code, strlen(code), 0, substrings);
 	char *location = substrings[LOCATION_ERROR_URL];
 

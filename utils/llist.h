@@ -22,7 +22,7 @@ typedef struct lnode {
 typedef struct llist {
 	struct lnode *front;
 	struct lnode *back;
-	size_t size;
+	int size;
 	int (*equalsfunction)(void *a, void *b);
 } llist;
 
