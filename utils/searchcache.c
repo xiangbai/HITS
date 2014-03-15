@@ -40,6 +40,14 @@ int comparelong(long *a, long *b)
 		return 1;
 }
 
+int equalslong(long *a, long *b)
+{
+	if (comparelong(a, b))
+		return 0;
+	else
+		return 1;
+}
+
 // helper function to concat path and filename
 char *getpath(char *folder, char *filename)
 {
@@ -104,7 +112,7 @@ url_llist *getcache(char *folder, char *searchstring)
 		// push url and a linked list for its outlinks
 		url_llist_push_back(output, url);
 		urls[i] = url;
-		llist_init(&(outlink_indexes[i]), (void *)comparelong);
+		llist_init(&(outlink_indexes[i]), (void *)equalslong);
 		
 		// read and push each outlink
 		for (j = 0; j < numoutlinks; j++)

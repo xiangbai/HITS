@@ -60,6 +60,13 @@ int equals_url_w_string_links(url_w_string_links *a, url_w_string_links *b)
     return 1;
 }
 
+int equals_urlinfo(urlinfo *a, urlinfo *b)
+{
+	if (urlcompare(a, b))
+		return 0;
+	return 1;
+}
+
 url_w_string_links *url_w_links_init(urlinfo *url)
 {
 	url_w_string_links *output = malloc(sizeof(url_w_string_links));
@@ -284,8 +291,8 @@ urlinfo *makeURL(char *givenAddress, urlinfo *currentURL)
 		}
 		
 		// make linked list of outgoing links and incoming links
-		llist_init(&newurl->outlinks, (void *)urlcompare);
-		llist_init(&newurl->inlinks, (void *)urlcompare);
+		llist_init(&newurl->outlinks, (void *)equals_urlinfo);
+		llist_init(&newurl->inlinks, (void *)equals_urlinfo);
 	}
 	
 	return newurl;	

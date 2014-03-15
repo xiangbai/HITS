@@ -22,7 +22,7 @@
 #define BUFFER_SIZE 1024
 #define PORT_80 "80"
 
-#define ROOT_GRAPH_SIZE			10
+#define ROOT_GRAPH_SIZE			50
 #define MAX_BACKLINKS			10
 #define MAX_DOMAIN_TO_DOMAIN	4
 
@@ -301,7 +301,9 @@ void link_outlinks(llist *urltable, btree *all_links)
 				// link current_url->url to outlink
 				if (outlink)
 				{
-					llist_push_back(&current_url->url->outlinks, outlink);
+					urlinfo *duplicate = llist_find(&current_url->url->outlinks, outlink);
+					if (duplicate == NULL)
+						llist_push_back(&current_url->url->outlinks, outlink);
 				
 				#ifdef LOG_INTRINSIC_VALUE
 					// print the linked urls
@@ -310,6 +312,10 @@ void link_outlinks(llist *urltable, btree *all_links)
 						fprintf(intrinsic_file, "%d: ", is_intrinsic(current_url->url, outlink));
 						fprintf(intrinsic_file, "linking: %s -> %s\n",
 								url_tostring(current_url->url), url_tostring(outlink));
+						if (duplicate)
+							fprintf(intrinsic_file, " dup:  %s - AND -  %s\n",
+									url_tostring(duplicate), url_tostring(outlink));
+							
 					}
 				#endif
 				}
@@ -869,10 +875,6 @@ void clean_outlinks(url_w_string_links *current_url, int add_urls)
 		{
 			string_llist_pop_front(&current_url->outlinks, new_string_link);
 			
-			#ifdef LOG_INTRINSIC_VALUE
-				fprintf(intrinsic_file, "\t -->: %s\n", new_string_link);
-			#endif
-		
 			// construct dummy urlinfo and see if it is in all links
 			urlinfo *desired_url = makeURLfromlink(new_string_link, current_url->url);
 			
@@ -885,9 +887,6 @@ void clean_outlinks(url_w_string_links *current_url, int add_urls)
 				
 				if (!intrin_val) //if NOT intrinsic
 				{
-					#ifdef LOG_INTRINSIC_VALUE
-						fprintf(intrinsic_file, "\tnot intrin: %s -- %s\n", new_string_link, url_tostring(current_url->url));
-					#endif
 					/*
 					 * See if domain of current url may still link to domain of new url
 					 */

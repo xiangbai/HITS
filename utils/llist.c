@@ -24,6 +24,8 @@ void llist_free(llist *list, int free_pointers)
 		free(current);
 		current = next;
 	}
+	list->front = NULL;
+	list->back = NULL;
     list->size = 0;
 }
 
