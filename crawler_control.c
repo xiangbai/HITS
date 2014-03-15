@@ -860,7 +860,9 @@ void clean_outlinks(url_w_string_links *current_url, int add_urls)
 		int num_outlinks_to_check = current_url->outlinks.size;
 		char new_string_link[BUFFER_SIZE];
 		char request[BUFFER_SIZE + 100];
-		
+		btree string_tree;
+		btree_init(&string_tree, (void*)strcmp);
+	
 		#ifdef LOG_INTRINSIC_VALUE
 			fprintf(intrinsic_file, "Links from: %s\n", url_tostring(current_url->url));
 		#endif
@@ -873,6 +875,19 @@ void clean_outlinks(url_w_string_links *current_url, int add_urls)
 				fprintf(intrinsic_file, "\t -->: %s\n", new_string_link);
 			#endif
 		
+			// see if it's a duplicate string in outlinks
+			if (btree_find(&string_tree, new_string_link))
+			{
+				fprintf(intrinsic_file, "\t *%s is a duplicate outlink", new_string_link);
+				num_outlinks_to_check--;
+				continue;
+			}
+			
+			// add link to string_tree
+			char *string_for_tree = (char*)malloc(sizeof(char) * strlen(new_string_link) + 1);
+			strcpy(string_for_tree, new_string_link);
+			btree_insert(&string_tree, string_for_tree);
+			
 			// construct dummy urlinfo and see if it is in all links
 			urlinfo *desired_url = makeURLfromlink(new_string_link, current_url->url);
 			
@@ -966,6 +981,10 @@ void clean_outlinks(url_w_string_links *current_url, int add_urls)
 			//free(new_string_link);
 			num_outlinks_to_check--;
 		}
+	
+	//free string_tree used for checking duplicates
+	btree_free(&string_tree, 1);
+	
 }
 
 /*
