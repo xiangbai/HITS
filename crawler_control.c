@@ -875,24 +875,25 @@ void clean_outlinks(url_w_string_links *current_url, int add_urls)
 				fprintf(intrinsic_file, "\t -->: %s\n", new_string_link);
 			#endif
 		
-			// see if it's a duplicate string in outlinks
-			if (btree_find(&string_tree, new_string_link))
-			{
-				fprintf(intrinsic_file, "\t *%s is a duplicate outlink", new_string_link);
-				num_outlinks_to_check--;
-				continue;
-			}
-			
-			// add link to string_tree
-			char *string_for_tree = (char*)malloc(sizeof(char) * strlen(new_string_link) + 1);
-			strcpy(string_for_tree, new_string_link);
-			btree_insert(&string_tree, string_for_tree);
-			
 			// construct dummy urlinfo and see if it is in all links
 			urlinfo *desired_url = makeURLfromlink(new_string_link, current_url->url);
 			
 			if (desired_url)
 			{
+				// see if it's a duplicate string in outlinks
+				if (btree_find(&string_tree, url_tostring(desired_url)))
+				{
+					fprintf(intrinsic_file, "\t *%s is a duplicate outlink", url_tostring(desired_url));
+					freeURL(desired_url);
+					num_outlinks_to_check--;
+					continue;
+				}
+				// add link to string_tree
+				char *string_for_tree = (char*)malloc(sizeof(char) * strlen(url_tostring(desired_url)) + 1);
+				strcpy(string_for_tree, url_tostring(desired_url));
+				btree_insert(&string_tree, string_for_tree);
+				
+				
 				int intrin_val = is_intrinsic(current_url->url, desired_url);
 				int link_added = 0;
 				int okay_to_link = 0;
