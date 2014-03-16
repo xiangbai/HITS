@@ -22,11 +22,12 @@
 #define BUFFER_SIZE 1024
 #define PORT_80 "80"
 
-#define ROOT_GRAPH_SIZE			50
-#define MAX_BACKLINKS			10
+#define ROOT_GRAPH_SIZE			200
+#define MAX_BACKLINKS			50
 #define MAX_DOMAIN_TO_DOMAIN	4
 
 #define LOG_INTRINSIC_VALUE
+#define LOG_ROOT_SET
 
 //userAgents randomly selected for http requests to avoid getting blocked by google
 char *userAgents[9] =
@@ -58,9 +59,13 @@ void back_link_request(char *request, urlinfo *engine, urlinfo *url, int num_lin
 void get_back_links(urlinfo *search_engine, urlinfo *current_url, char *port_string, char *request, parser *regexparser, btree *all_links, string_llist *destination);
 void clean_outlinks(url_w_string_links *current_url, int add_urls);
 void print_url_table(llist *urltable, char *file_tag);
+void save_root_graph(llist *urltable, char *search_string);
 
 #ifdef LOG_INTRINSIC_VALUE
 	FILE *intrinsic_file;
+#endif
+#ifdef LOG_ROOT_SET
+	FILE *root_set_file;
 #endif
 
 //!is_intrinsic requires the global parser intrin_parser be initialized in main before being called
@@ -138,6 +143,8 @@ int main()
 	links_in_search = get_potential_root_set(request, port_string, regexparser,
 											 &search_engine, search_string);
 	
+	save_root_graph(&urltable, search_string);
+	
 	//Validate and populate the links in links_in_search, which is the potential root set
 	validate_url_string_list(search_engine, links_in_search, 
 			&redir_stack, &linksfound, &redirects, 
@@ -145,7 +152,7 @@ int main()
 
 	// get last node in urltable
 	lnode *last_in_root = urltable.back;
-	
+
 /*	
 	printf("ROOT SET: got %d / %d\n", linksfound.numElems, ROOT_GRAPH_SIZE);
 	urlinfo** linkstoshow = (urlinfo**)btree_toarray(&linksfound);
@@ -156,6 +163,7 @@ int main()
 	
 	while(1);
 */
+
 
 	print_url_table(&urltable, "pre");
 	//TEMPORARILY DISABLE THE GETTING OF BACKLINKS W/IN THIS FUNCTION
@@ -232,6 +240,25 @@ int main()
 	return 0;
 }
 
+void save_root_graph(llist *urltable, char* search_string)
+{
+	char filename[100] = "root_sets/";
+	strcat(filename, search_string);
+	
+	FILE *file = fopen(filename, "w");
+	
+	lnode *current_node = urltable->front;
+	while (current_node)
+	{
+		url_w_string_links *current_url = current_node->data;
+		char *url = url_tostring(current_url->url);
+		fprintf(file, "%s\n", url);
+		free(url);
+		current_node = current_node->next;
+	}
+	fclose(file);
+}
+
 /*
  * Goes through all of the potential string outlinks in the urltable and searches for them
  * in our data structures. If found the url is pushed to the outlinks of the corresponding url in the urltable
@@ -263,15 +290,6 @@ void link_outlinks(llist *urltable, btree *all_links)
 				// attempt to find the outlink
 				urlinfo *outlink = (urlinfo *)btree_find(all_links, desired_url);
 
-				#ifdef LOG_INTRINSIC_VALUE
-					// print the linked urls
-					if (outlink)
-					{
-						fprintf(intrinsic_file, "from all_links: %s -> %s\n", 
-								string_link, url_tostring(outlink));
-					}
-				#endif
-				
 				// free dummy variable
 				freeURL(desired_url);
 				desired_url = NULL;
@@ -305,19 +323,12 @@ void link_outlinks(llist *urltable, btree *all_links)
 					if (duplicate == NULL)
 						llist_push_back(&current_url->url->outlinks, outlink);
 				
-				#ifdef LOG_INTRINSIC_VALUE
-					// print the linked urls
-					if (outlink)
-					{
+					#ifdef LOG_INTRINSIC_VALUE
+						// print the linked urls
 						fprintf(intrinsic_file, "%d: ", is_intrinsic(current_url->url, outlink));
 						fprintf(intrinsic_file, "linking: %s -> %s\n",
 								url_tostring(current_url->url), url_tostring(outlink));
-						if (duplicate)
-							fprintf(intrinsic_file, " dup:  %s - AND -  %s\n",
-									url_tostring(duplicate), url_tostring(outlink));
-							
-					}
-				#endif
+					#endif
 				}
 			}
 		}
@@ -978,7 +989,6 @@ void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, u
 	
 	// set progress bar for easier monitoring of progress
 	long root_size = all_links->numElems;
-	long current_progress = 0;
 	progress_bar progbar;
 	progress_init(&progbar, root_size, 40);
 		
@@ -986,122 +996,14 @@ void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, u
 	while(current_url_node && current_url->url->searchdepth == 1)
 	{
 		printf("PROGRESS: %s\n", progbar.display);
-		current_progress++;
+		progress_setval(&progbar, progbar.value + 1);
 		
 		clean_outlinks(current_url, 1);
-/*		
-		// iterate through each url string in each urlinfo and validate
-		//string_node *current_outlink_node = current_url->outlinks.front;
-		int num_outlinks_to_check = current_url->outlinks.size;
-		//while (current_outlink_node)
 		
-		#ifdef LOG_INTRINSIC_VALUE
-			fprintf(intrinsic_file, "Links from: %s\n", url_tostring(current_url->url));
-		#endif
-		
-		
-		while (num_outlinks_to_check > 0)
-		{
-			string_llist_pop_front(&current_url->outlinks, new_string_link);
-			
-			#ifdef LOG_INTRINSIC_VALUE
-				fprintf(intrinsic_file, "\t -->: %s\n", new_string_link);
-			#endif
-		
-			// construct dummy urlinfo and see if it is in all links
-			urlinfo *desired_url = makeURLfromlink(new_string_link, current_url->url);
-			
-			if (desired_url)
-			{
-				int intrin_val = is_intrinsic(current_url->url, desired_url);
-				int link_added = 0;
-				int okay_to_link = 0;
-				urlinfo *found_url = (urlinfo *)btree_find(all_links, desired_url);
-				
-				if (!intrin_val) //if NOT intrinsic
-				{
-					#ifdef LOG_INTRINSIC_VALUE
-						fprintf(intrinsic_file, "\tnot intrin: %s -- %s\n", new_string_link, url_tostring(current_url->url));
-					#endif
-					
-					// * See if domain of current url may still link to domain of new url
-					
-					// make dummy domaininfos for searching purposes
-					domaininfo *desired_domain = domaininfo_init(current_url->url->host);
-					domaininfo *fromdomain = btree_find(&domains, desired_domain);
-					
-					if (fromdomain == NULL)	// if desired domain not in domains, it is the new fromdomain
-					{
-						fromdomain = desired_domain;		// set fromdomain for use later in function
-						btree_insert(&domains, fromdomain);	// insert new domain into tree
-					}
-					else
-					{	// desired_domain is a duplicate; free it
-						freedomain(desired_domain);
-						free(desired_domain);
-					}
-	
-					// dummy domain for searching
-					domaininfo *todomain = domaininfo_init(desired_url->host);
-					int num_domain_links = domaininfo_numlinks_to_domain(fromdomain, todomain);
-
-					// free dummy to-domain
-					freedomain(todomain);
-					free(todomain);
-	
-					// if there is room for more links to new domain, add the link to all_links and domain.outlinks
-					if (num_domain_links < MAX_DOMAIN_TO_DOMAIN)
-					{
-						if (found_url) // if NOT found in all_links, check redir_tree
-						{
-							okay_to_link = 1;
-						}
-						else
-						{
-							// check if url is in redirect tree
-							//string_redirect *found_redirect = find_redirect(string_link);
-							string_redirect *found_redirect = find_redirect(new_string_link);
-							
-							//if NOT found in redir_tree
-							if (found_redirect)
-							{
-								found_url = found_redirect->valid_url;
-								okay_to_link = 1;
-							}
-							else
-							{
-								found_url = desired_url;
-								int populate_val = validate_url_and_populate(found_url, redir_stack, 
-										all_links, urltable, request, port_string, regexparser);
-
-								link_added = 1;
-								if (populate_val > 0)
-									okay_to_link = 1;
-							}
-						}
-
-						if (okay_to_link)
-						{
-							#ifdef LOG_INTRINSIC_VALUE
-								fprintf(intrinsic_file, "adding %s\n", url_tostring(found_url));
-							#endif
-							string_llist_push_back(&current_url->outlinks, new_string_link);
-							domaininfo_puturl(fromdomain, found_url);
-						}
-					}
-				}
-				if (!link_added)
-				{
-					freeURL(desired_url);
-				}
-			}
-			
-			//free(new_string_link);
-			num_outlinks_to_check--;
-		} // end urlinfo outlinks loop
-*/		
 		//do a backlink request on the current url
 		//get_back_links(search_engine, current_url->url, port_string, request, regexparser, all_links, destination);
+		
+		// go to next node and get its url_w_string_links
 		current_url_node = current_url_node->next;
 		if (current_url_node)
 			current_url = (url_w_string_links *)current_url_node->data;
@@ -1194,11 +1096,17 @@ void get_back_links(urlinfo *engine, urlinfo *current_url, char *port_string, ch
 int is_intrinsic(urlinfo *old_page, urlinfo *new_page)
 {
 	int compareval = compare_domain_name(old_page->host, new_page->host);
-	
+	int output;
 	if (compareval)
-		return 0;
+		output = 0;
 	else
-		return 1;
+		output = 1;
+	
+	#ifdef LOG_INTRINSIC_VALUE
+		fprintf(intrinsic_file, "intrinsic compare: %s, %s: %d\n", old_page->host, new_page->host, output);
+	#endif
+
+	return output;	
 	//return 0;
 	/*
 	int ovector[intrin_parser->vectorsize];

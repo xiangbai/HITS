@@ -107,6 +107,13 @@ int compare_domainlink(domainlink* linka, domainlink* linkb)
 	return strcmp(linka->domain->name, linkb->domain->name);
 }
 
+int equals_domainlink(domainlink *a, domainlink *b)
+{
+	if (compare_domainlink(a, b))
+		return 0;
+	else return 1;
+}
+
 domaininfo *domaininfo_init(char *domainname)
 {
 	domaininfo *domain = (domaininfo *)malloc(sizeof(domaininfo));
@@ -128,7 +135,7 @@ void domaininfo_puturl(domaininfo *domain, urlinfo *url)
 		// no appropriate domainlink found; create it
 		domainlink *newdomain = (domainlink*)malloc(sizeof(domainlink));
 		newdomain->domain = domaininfo_init(url->host);		// domain name
-		llist_init(&newdomain->pages, (int (*)(void*, void*))&compare_domainlink);	// llist for pages
+		llist_init(&newdomain->pages, (int (*)(void*, void*))&equals_domainlink);	// llist for pages
 		
 		// add new url to pages linked list
 		llist_push_back(&newdomain->pages, (void*)url);
