@@ -22,7 +22,7 @@
 #define BUFFER_SIZE 1024
 #define PORT_80 "80"
 
-#define ROOT_GRAPH_SIZE			200
+#define ROOT_GRAPH_SIZE			10
 #define MAX_BACKLINKS			50
 #define MAX_DOMAIN_TO_DOMAIN	4
 
@@ -1213,7 +1213,6 @@ int is_intrinsic(urlinfo *old_page, urlinfo *new_page)
 
 void print_url_table(llist *urltable, char *file_tag)
 {
-	puts("in print_url_table");
 	FILE *fp;
 	char file_name[BUFFER_SIZE];
 	strcpy(file_name, "url_table_");
@@ -1223,6 +1222,7 @@ void print_url_table(llist *urltable, char *file_tag)
 
 	lnode *current_url_node = urltable->front;
 	
+	fprintf(fp, "TOTAL URLS = %d\n", urltable->size);
 	
 	while(current_url_node)
 	{
