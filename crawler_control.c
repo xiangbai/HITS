@@ -22,11 +22,13 @@
 #define BUFFER_SIZE 1024
 #define PORT_80 "80"
 
-#define ROOT_GRAPH_SIZE			10
-#define MAX_BACKLINKS			10
+#define ROOT_GRAPH_SIZE			200
+#define MAX_BACKLINKS			50
 #define MAX_DOMAIN_TO_DOMAIN	4
 
 #define LOG_INTRINSIC_VALUE
+#define LOG_GOOGLE_REQUESTS
+#define LOG_HITS_RESULTS
 
 //userAgents randomly selected for http requests to avoid getting blocked by google
 char *userAgents[9] =
@@ -63,6 +65,11 @@ void print_url_table(llist *urltable, char *file_tag);
 	FILE *intrinsic_file;
 #endif
 
+#ifdef LOG_GOOGLE_REQUESTS
+	FILE *google_req_file;
+	int potential_backlinks_found = 0;
+#endif
+
 //!is_intrinsic requires the global parser intrin_parser be initialized in main before being called
 int is_intrinsic(urlinfo *old_page, urlinfo *new_page);
 //char intrin_pattern[] = "(\\w+)\\.\\w+$";
@@ -86,6 +93,11 @@ int main()
 	printf("%p\n", intrinsic_file);
 #endif
 
+#ifdef LOG_GOOGLE_REQUESTS
+	google_req_file = fopen("google_requests.txt", "w");
+	printf("%p\n", google_req_file);
+#endif
+	
 	char pattern[] = "<a [^>]*?href *= *[\'\"]([^\"\'>]+)[\'\"].*?>";
 	char request[BUFFER_SIZE + 100];
 	char port_string[3];
@@ -134,10 +146,17 @@ int main()
 	//**************************** Start alogorithm ********************************
 	
 	//Get root set and put potential links in links_in_search
+#ifdef LOG_GOOGLE_REQUESTS
+	fprintf(google_req_file, "Tracing google search request...\n");
+	fprintf(google_req_file, "--------------------------------------");
+#endif
 	string_llist *links_in_search;
 	links_in_search = get_potential_root_set(request, port_string, regexparser,
 											 &search_engine, search_string);
-	
+
+#ifdef LOG_GOOGLE_REQUESTS
+	fprintf(google_req_file, "\n\n%zd potential urls found from search requests", links_in_search->size);
+#endif
 	//Validate and populate the links in links_in_search, which is the potential root set
 	validate_url_string_list(search_engine, links_in_search, 
 			&redir_stack, &linksfound, &redirects, 
@@ -160,9 +179,23 @@ int main()
 	print_url_table(&urltable, "pre");
 	//TEMPORARILY DISABLE THE GETTING OF BACKLINKS W/IN THIS FUNCTION
 	//Validate and populate the outlinks of the root set and get potential backlinks from root set
+	
+#ifdef LOG_GOOGLE_REQUESTS
+	fprintf(google_req_file, "\n\n\nTracing google backlink requests...\n");
+	fprintf(google_req_file, "--------------------------------------");
+#endif
 	validate_outlinks_get_backlinks(&search_engine, &linksfound, &redir_stack, &redirects,
 									&urltable, request, port_string, regexparser, &backlinks);
 
+#ifdef LOG_GOOGLE_REQUESTS
+	fprintf(google_req_file, "\n\nPOTENTIAL BACKLINKS FOUND = %d", potential_backlinks_found);
+#endif
+	
+	//add the backlinks to the urltable
+	validate_url_string_list(search_engine, &backlinks,
+							 &redir_stack, &linksfound, &redirects,
+							 &urltable, request, port_string, regexparser);
+	
 	// clean the outlink strings in the newly added entries to urltable
 	lnode *current_node = last_in_root->next;
 	while (current_node)
@@ -192,7 +225,11 @@ int main()
 	for (i = 0; i < linksfound.numElems; i++)
 		url_llist_push_back(&super_set_list, super_set_array[i]);
 	
+	
 	// Save Data
+	char meta_data[25];
+	sprintf(meta_data, "_RG=%d_MBL=%d_MD2D=%d", ROOT_GRAPH_SIZE, MAX_BACKLINKS, MAX_DOMAIN_TO_DOMAIN);
+	strcat(search_string, meta_data);
 	setcache(path, search_string, &super_set_list);
 	
 	/* DEMO: this should be moved out of crawler_control eventually */
@@ -211,12 +248,27 @@ int main()
 	puts("sorting..");
 	rank_sort(super_set_array, num_links);
 	
+#ifdef LOG_HITS_RESULTS
+	char results_filename[BUFFER_SIZE];
+	strcpy(results_filename, "searches/");
+	strcat(results_filename, search_string);
+	strcat(results_filename, "_results");
+	FILE *hits_results_file = fopen(results_filename, "w");
+	fprintf(hits_results_file, "ROOT GRAPH SIZE = %d\n", ROOT_GRAPH_SIZE);
+	fprintf(hits_results_file, "MAX BACKLINKS = %d\n", MAX_BACKLINKS);
+	fprintf(hits_results_file, "MAX DOMAIN-TO-DOMAIN = %d\n", MAX_DOMAIN_TO_DOMAIN);
+	fprintf(hits_results_file, "----------------------\n");
+#endif
+	
 	// display
 	printf("----------------------\n The results are in\n----------------------\n");
 	printf("score\turl\n");
 	for (i = num_links - 1; i >= 0; i--)
 	{
 		char *url_name = url_tostring(super_set_array[i]);
+#ifdef LOG_HITS_RESULTS
+		fprintf(hits_results_file, "%lf\t%s\n", super_set_array[i]->authScore, url_name);
+#endif
 		printf("%lf\t%s\n", super_set_array[i]->authScore, url_name);
 		free(url_name);
 	}
@@ -226,6 +278,12 @@ int main()
 	/***** Free Structures *****/
 	//TODO
 	
+#ifdef LOG_HITS_RESULTS
+	fclose(hits_results_file);
+#endif
+#ifdef LOG_GOOGLE_REQUESTS
+	fclose(google_req_file);
+#endif
 	#ifdef LOG_INTRINSIC_VALUE
 		fclose(intrinsic_file);
 	#endif
@@ -467,7 +525,7 @@ string_llist *get_potential_root_set(char *request, char *port_string,
 	
 	int socket;
 	
-	int resultsPerPage = 50;
+	int resultsPerPage = 100;
 	int i;
 	for(i = 1; i < ROOT_GRAPH_SIZE; i += resultsPerPage)
 	{
@@ -494,7 +552,9 @@ string_llist *get_potential_root_set(char *request, char *port_string,
 			
 			// get code
 			char *code = loadPage(socket);
-			
+#ifdef LOG_GOOGLE_REQUESTS
+			fprintf(google_req_file, "\n\nsearch request returned with status code %d", get_status_code(code));
+#endif
 			// get array containing <a> tags and associated urls
 			int substrings[] = {0, 1};
 			get_links(code, regexparser, tags_and_urls, substrings, 2);
@@ -1122,7 +1182,7 @@ void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, u
 		} // end urlinfo outlinks loop
 */		
 		//do a backlink request on the current url
-		//get_back_links(search_engine, current_url->url, port_string, request, regexparser, all_links, destination);
+		get_back_links(search_engine, current_url->url, port_string, request, regexparser, all_links, destination);
 		current_url_node = current_url_node->next;
 		if (current_url_node)
 			current_url = (url_w_string_links *)current_url_node->data;
@@ -1145,7 +1205,7 @@ void back_link_request(char *request, urlinfo *engine, urlinfo *url, int num_lin
 	strcat(request, " HTTP/1.0\n");
 	
 	// construct headers
-	strcat(request, "Host: www.");
+	strcat(request, "Host: ");
 	strcat(request, engine->host);
 	strcat(request, "\n");
 	
@@ -1168,10 +1228,18 @@ void get_back_links(urlinfo *engine, urlinfo *current_url, char *port_string, ch
 		back_link_request(request, engine, current_url, MAX_BACKLINKS);
 		
 		printf("sending backlink request\n%s", request);
+
+#ifdef LOG_GOOGLE_REQUESTS
+		fprintf(google_req_file, "\n\nRequest backlinks for : %s", url_tostring(current_url));
+#endif
 		send(socket, request, strlen(request), 0);
 		
 		char *code = loadPage(socket);
-		printf("Request returned with code: %d\n", get_status_code(code));
+		printf("\nBacklink request returned with code: %d\n", get_status_code(code));
+
+#ifdef LOG_GOOGLE_REQUESTS
+		fprintf(google_req_file, "\nBacklink request returned with code: %d", get_status_code(code));
+#endif
 		
 		// create linked list to hold hyperlinks from code
 		string_llist links_in_code;
@@ -1192,10 +1260,13 @@ void get_back_links(urlinfo *engine, urlinfo *current_url, char *port_string, ch
 		free(tags_and_urls);
 		
 		// push the found strings to destination
-		char *link_in_code = NULL;
+		char link_in_code[BUFFER_SIZE];
 		string_llist_pop_front(&links_in_code, link_in_code);
-		while(link_in_code)
+		while(links_in_code.front)
 		{
+#ifdef LOG_GOOGLE_REQUESTS
+			potential_backlinks_found++;
+#endif
 			string_llist_push_back(destination, link_in_code);
 			string_llist_pop_front(&links_in_code, link_in_code);
 		}
