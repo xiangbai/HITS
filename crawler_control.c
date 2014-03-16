@@ -901,7 +901,6 @@ void validate_url_string_list(urlinfo origin_url, string_llist *links_in_search,
 	while (links_in_search->size)
 	{
 		string_llist_pop_front(links_in_search, link_in_search);
-		puts("\n attempting to make link in validate_url_string_list");
 		urlinfo *url_from_search = makeURLfromlink(link_in_search, &origin_url);
 		
 		if (!url_from_search)	// unable to construct url
@@ -954,7 +953,7 @@ void clean_outlinks(url_w_string_links *current_url, int add_urls)
 			if (desired_url)
 			{
 				int intrin_val = is_intrinsic(current_url->url, desired_url);
-				int link_added = 0;
+				int dont_free_url = 0;
 				int okay_to_link = 0;
 				urlinfo *found_url = (urlinfo *)btree_find(&linksfound, desired_url);
 				
@@ -1010,10 +1009,12 @@ void clean_outlinks(url_w_string_links *current_url, int add_urls)
 								found_url = desired_url;
 								int populate_val = validate_url_and_populate(found_url, &redir_stack, 
 										&linksfound, &urltable, request, port, regexparser);
+								
+								if (populate_val < 2)
+									dont_free_url = 1;
 
 								if (populate_val > 0)
 								{
-									link_added = 1;
 									okay_to_link = 1;
 								}
 							}
@@ -1029,7 +1030,7 @@ void clean_outlinks(url_w_string_links *current_url, int add_urls)
 						}
 					}
 				}
-				if (!link_added)
+				if (!dont_free_url)
 				{
 					freeURL(desired_url);
 				}
