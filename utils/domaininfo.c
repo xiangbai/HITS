@@ -27,6 +27,7 @@ void domain_regex_init()
 char *get_name_sans_subdomains(char *domain_name)
 {
 	int i;
+	
 	// initialize array to store substrings
 	char *substrings[NUM_SUBSTRINGS];
 	for (i = 0; i < NUM_SUBSTRINGS; i++)
@@ -65,12 +66,21 @@ int compare_domain_name(char *a, char *b)
 	char *domain_a = get_name_sans_subdomains(a);
 	char *domain_b = get_name_sans_subdomains(b);
 
+	int compare_val;
+
 	// get comparison
-	int compare_val = strcmp(domain_a, domain_b);
+	if (!domain_b)
+		compare_val = -1;
+	else if (!domain_a)
+		compare_val = 1;
+	else
+		compare_val = strcmp(domain_a, domain_b);
 	
 	// free strings
-	free(domain_a);
-	free(domain_b);
+	if (domain_a)
+		free(domain_a);
+	if (domain_b)
+		free(domain_b);
 	
 	// return value
 	return compare_val;
