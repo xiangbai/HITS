@@ -1,4 +1,6 @@
+#include <errno.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -22,8 +24,8 @@
 #define BUFFER_SIZE 1024
 #define PORT_80 "80"
 
-#define ROOT_GRAPH_SIZE			80
-#define MAX_BACKLINKS			20
+#define ROOT_GRAPH_SIZE			5
+#define MAX_BACKLINKS			1
 #define MAX_DOMAIN_TO_DOMAIN	4
 
 #define LOG_INTRINSIC_VALUE
@@ -116,7 +118,7 @@ int main()
 	char port_string[3];
 	strcpy(port_string, PORT_80);
 	char search_string[100];    //holds the user search query for autonaming save files
-
+	strcpy(search_string, "");
 	// initialize domain regex (required before domaininfo may be used)
 	domain_regex_init();
 	
@@ -296,8 +298,9 @@ void save_root_graph(llist *urltable, char* search_string)
 	char filename[100] = "root_sets/";
 	strcat(filename, search_string);
 	
-	FILE *file = fopen(filename, "w");
-	
+	FILE *file;
+	if (!(file = fopen(filename, "w")))
+		printf("ERROR: %s\n", strerror(errno));
 	lnode *current_node = urltable->front;
 	while (current_node)
 	{
@@ -643,17 +646,18 @@ void incrementResultsRequest(char *path, char *clone, int start, int numResults)
  */
 void getUserSearchQuery(char *path, char *save_query)
 {
-	char templine[(PATH_LENGTH/2)];
+	char templine[BUFFER_SIZE];
 	char *token;
-	const char delims[2] = {' ', '\n'};//"\n";
+	//const char delims[2] = " \n";//"\n";
 	
 	fputs("enter a line of text\n", stdout);
 	
 	
-	if (fgetline(templine, (int)sizeof(templine)-1) > 0) //read a line
+	if (fgets(templine, BUFFER_SIZE, stdin)) //read a line
 	{
-		token = strtok(templine, delims);
-		
+		printf("you entered = %s\n", templine);
+		token = strtok(templine, " ");
+		printf("token = %s\n", token);		
 		
 		strcpy(path, "search?q=");
 		
@@ -661,7 +665,8 @@ void getUserSearchQuery(char *path, char *save_query)
 		{
 			strcat(path, token);
 			strcat(save_query, token);
-			token = strtok(NULL, delims);
+			token = strtok(NULL, " ");
+			printf("token = %s\n", token);
 		}
 		
 		while (token != NULL)
@@ -670,12 +675,20 @@ void getUserSearchQuery(char *path, char *save_query)
 			strcat(save_query, "_");
 			strcat(path, token);
 			strcat(save_query, token);
-			token = strtok(NULL, delims);
+			token = strtok(NULL, " ");
+			printf("token = %s\n", token);
 		}
+		
+		path[strlen(path)-1] = '\0';
 		strcat(path, "&safe=active");
 	}
 	else
 		report_error("getUserSearchQuery failed");
+	
+	save_query[strlen(save_query)-1] = '\0';
+	
+	printf("save_query = %s\n", save_query);
+	printf("path = %s\n", path);
 }
 
 /*
