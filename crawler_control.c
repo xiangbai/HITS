@@ -22,14 +22,15 @@
 #define BUFFER_SIZE 1024
 #define PORT_80 "80"
 
-#define ROOT_GRAPH_SIZE			10
-#define MAX_BACKLINKS			50
+#define ROOT_GRAPH_SIZE			80
+#define MAX_BACKLINKS			20
 #define MAX_DOMAIN_TO_DOMAIN	4
 
 #define LOG_INTRINSIC_VALUE
 #define LOG_ROOT_SET
 #define LOG_GOOGLE_REQUESTS
 #define LOG_HITS_RESULTS
+#define LOG_REDIRECTS
 
 //userAgents randomly selected for http requests to avoid getting blocked by google
 char *userAgents[9] =
@@ -58,7 +59,7 @@ void validate_url_string_list(urlinfo search_engine, string_llist *links_in_sear
 int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *all_links, llist *urls_w_strings_list, char *request, char *port_string, parser *regexparser);
 void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, url_llist *redir_stack, btree *redir_tree, llist *urltable, char *request, char *port_string, parser *regexparser, string_llist *destination);
 void back_link_request(char *request, urlinfo *engine, urlinfo *url, int num_links);
-void get_back_links(urlinfo *search_engine, urlinfo *current_url, char *port_string, char *request, parser *regexparser, btree *all_links, string_llist *destination);
+void get_back_links(urlinfo *search_engine, urlinfo *current_url, char *port_string, char *request, parser *regexparser, string_llist *destination);
 void clean_outlinks(url_w_string_links *current_url, int add_urls);
 void print_url_table(llist *urltable, char *file_tag);
 void save_root_graph(llist *urltable, char *search_string);
@@ -66,7 +67,9 @@ void save_root_graph(llist *urltable, char *search_string);
 #ifdef LOG_INTRINSIC_VALUE
 	FILE *intrinsic_file;
 #endif
-
+#ifdef LOG_REDIRECTS
+	FILE *redirect_file;
+#endif
 #ifdef LOG_ROOT_SET
 	FILE *root_set_file;
 #endif
@@ -104,6 +107,10 @@ int main()
 	printf("%p\n", google_req_file);
 #endif
 	
+#ifdef LOG_REDIRECTS
+	redirect_file = fopen("redirectlog.txt", "w");
+#endif
+
 	char pattern[] = "<a [^>]*?href *= *[\'\"]([^\"\'>]+)[\'\"].*?>";
 	char request[BUFFER_SIZE + 100];
 	char port_string[3];
@@ -136,19 +143,6 @@ int main()
 	search_engine.searchdepth = 0;
 	search_engine.searchdepth = 0;
 	
-	/*following for parser testing
-	 urlinfo testUrl1, testUrl2;
-	 testUrl1.host = "wikipedia.com";
-	 testUrl2.host = "en.tv.co.wikipediZ.org";
-	 
-	 
-	 if(is_intrinsic(&testUrl1, &testUrl2))
-	 printf("%s is intrinsic to %s", testUrl2.host, testUrl1.host);
-	 else
-	 printf("%s is NOT intrinsic to %s", testUrl2.host, testUrl1.host);
-	 */
-	
-	
 	//**************************** Start alogorithm ********************************
 	
 	
@@ -162,9 +156,6 @@ int main()
 	links_in_search = get_potential_root_set(request, port_string, regexparser,
 											 &search_engine, search_string);
 	
-	save_root_graph(&urltable, search_string);
-	
-
 #ifdef LOG_GOOGLE_REQUESTS
 	fprintf(google_req_file, "\n\n%zd potential urls found from search requests", links_in_search->size);
 #endif
@@ -174,22 +165,15 @@ int main()
 			&redir_stack, &linksfound, &redirects, 
 			&urltable, request, port_string, regexparser);
 
+	save_root_graph(&urltable, search_string);
+	
 	// get last node in urltable
 	lnode *last_in_root = urltable.back;
 
-/*	
-	printf("ROOT SET: got %d / %d\n", linksfound.numElems, ROOT_GRAPH_SIZE);
-	urlinfo** linkstoshow = (urlinfo**)btree_toarray(&linksfound);
-	int j;
-	for (j = 0; j < linksfound.numElems; j++)
-		printf("url: %s %s %s\n", 
-				linkstoshow[j]->host, linkstoshow[j]->path, linkstoshow[j]->filename);
-	
-	while(1);
-*/
-
-
-	print_url_table(&urltable, "pre");
+	char pre_filename[100];
+	strcpy(pre_filename, "pre_");
+	strcat(pre_filename, search_string);
+	print_url_table(&urltable, pre_filename);
 	
 	//Validate and populate the outlinks of the root set and get potential backlinks from root set
 #ifdef LOG_GOOGLE_REQUESTS
@@ -217,7 +201,10 @@ int main()
 		current_node = current_node->next;
 	}
 	
-	print_url_table(&urltable, "post");
+	char post_filename[100];
+	strcpy(post_filename, "post_");
+	strcat(post_filename, search_string);
+	print_url_table(&urltable, post_filename);
 	
 	//Link outlinks of valid urls to valid urls
 	link_outlinks(&urltable, &linksfound);
@@ -274,7 +261,7 @@ int main()
 	
 	// display
 	printf("----------------------\n The results are in\n----------------------\n");
-	printf("score\turl\n");
+	printf("score\t\turl\n");
 	for (i = num_links - 1; i >= 0; i--)
 	{
 		char *url_name = url_tostring(super_set_array[i]);
@@ -748,11 +735,8 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
 	
 	// create socket
 	int socket = connect_socket(cur_url->host, port_string, stdout);
-	printf("Socket number is %d\n", socket);
 	if (socket >= 0)
 	{
-		puts("connected!");
-		
 		// send http requrest (MSG__NOSIGNAL prevents exiting on SIGPIPE error)
 #if defined(SO_NOSIGPIPE)
 		send(socket, request, strlen(request), 0);
@@ -761,11 +745,9 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
 #else 
 		report_error("This program requires systems to define MSG_NOSIGNAL or SO_NOSIGPIPE");
 #endif
-		puts("sent request");
 		
 		// get code
 		char *code = loadPage(socket);
-		puts("grabbed code");
 		
 		// test if the page loaded properly
 		int statuscode = get_status_code(code);
@@ -823,11 +805,21 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
 			if (url_from_redirect) //search for new url from redirect in all_links
 				url_from_all_links = (urlinfo*)btree_find(all_links, url_from_redirect);
 			
+			#ifdef LOG_REDIRECTS
+				fprintf(redirect_file, "%s\n", redirect_url_string);
+			#endif
+
 			//CASE 2a: Redirect is an existing url. Delete the duplicate, create
 			//all redirect entries and insert into redir_tree
 			if (url_from_all_links) //if temp != NULL, then redirect is NOT a new link
 			{
 				freeURL(url_from_redirect); //duplicate url so we need to free it
+				
+				#ifdef LOG_REDIRECTS
+					char *r = url_tostring(url_from_all_links);
+					fprintf(redirect_file, " IN ALLLINKS %s\n", r);
+					free(r);
+				#endif
 				
 				//insert into redir_links btree if necessary and free links
 				add_links_to_redirect_tree(&redirects, redir_stack, url_from_all_links);//cur_url);
@@ -844,6 +836,12 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
 				//free unnecessary stuff before recursive call so we don't have excess memory build-up
 				free(redirect_url_string);
 				
+				#ifdef LOG_REDIRECTS
+					char *r = url_tostring(url_from_redirect);
+					fprintf(redirect_file, " NEW %s\n", r);
+					free(r);
+				#endif
+				
 				free(code);
 				close(socket);
 				int ret_val = validate_url_and_populate(url_from_redirect, redir_stack, all_links,
@@ -854,6 +852,10 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
 			//CASE 2c: makeURLfromredirect returned NULL so dead END. Free structures and exit
 			else
 			{
+				#ifdef LOG_REDIRECTS
+					fprintf(redirect_file, " FAIL\n\n");
+				#endif
+				
 				free(code);
 				close(socket);
 				urlinfo *temp_url;
@@ -870,6 +872,9 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
 		//Case 3: NOT success AND NOT redirect so we have a DEAD END. Free structures and exit
 		else
 		{
+			#ifdef LOG_REDIRECTS
+				fprintf(redirect_file, "CasE3 fail\n\n");
+			#endif
 			free(code);
 			
 			//free URLs on redir_stack
@@ -1058,13 +1063,13 @@ void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, u
 	//iterate through the root set in the urltable
 	while(current_url_node && current_url->url->searchdepth == 1)
 	{
-		printf("PROGRESS: %s\n", progbar.display);
+		printf("Validating outlinks/getting inlinks: %s\n", progbar.display);
 		progress_setval(&progbar, progbar.value + 1);
 		
 		clean_outlinks(current_url, 1);
 		
 		//do a backlink request on the current url
-		get_back_links(search_engine, current_url->url, port_string, request, regexparser, all_links, destination);
+		get_back_links(search_engine, current_url->url, port_string, request, regexparser, destination);
 		
 		// go to next node and get its url_w_string_links
 		current_url_node = current_url_node->next;
@@ -1100,7 +1105,7 @@ void back_link_request(char *request, urlinfo *engine, urlinfo *url, int num_lin
 /*
  * Performs a backlink query for *current_url and returns the results as strings in *destination
  */
-void get_back_links(urlinfo *engine, urlinfo *current_url, char *port_string, char *request, parser *regexparser, btree *all_links, string_llist *destination)
+void get_back_links(urlinfo *engine, urlinfo *current_url, char *port_string, char *request, parser *regexparser, string_llist *destination)
 {
 	//connect to engine
 	int socket = connect_socket(engine->host, port_string, stdout);
@@ -1157,7 +1162,7 @@ void get_back_links(urlinfo *engine, urlinfo *current_url, char *port_string, ch
 	}
 	else
 	{
-		char *error_msg = NULL;
+		char error_msg[BUFFER_SIZE];
 		sprintf(error_msg,"unable to connect to engine: %s for backlink search on site: %s", engine->host, current_url->host);
 		report_error(error_msg);
 	}
@@ -1181,42 +1186,13 @@ int is_intrinsic(urlinfo *old_page, urlinfo *new_page)
 	#endif
 
 	return output;	
-	//return 0;
-	/*
-	int ovector[intrin_parser->vectorsize];
-	int retval = pcre_exec(intrin_parser->re, NULL,
-						   old_page->host, (int)strlen(old_page->host), 0, 0,
-						   ovector, intrin_parser->vectorsize);
-	if (retval < 0)	// return false if couldn't parse old_page's domain
-		return 0;
-	
-	//copy the domain matched into buffer domain1
-	char domain1[100];
-	pcre_copy_substring(old_page->host, ovector, retval, 1, domain1, 100);
-	
-	
-	retval = pcre_exec(intrin_parser->re, NULL,
-					   new_page->host, (int)strlen(new_page->host), 0, 0,
-					   ovector, intrin_parser->vectorsize);
-	if (retval < 0)	// return false if couldn't parse new_page's domain
-		return 0;
-	
-	//copy the domain matched into the buffer domain2
-	char domain2[100];
-	pcre_copy_substring(new_page->host, ovector, retval, 1, domain2, 100);
-	
-	if (strcmp(domain1, domain2) == 0)
-		return 1;	// return true if the domains are a match
-	
-	return 0;		// return false
-	*/
 }
 
 void print_url_table(llist *urltable, char *file_tag)
 {
 	FILE *fp;
 	char file_name[BUFFER_SIZE];
-	strcpy(file_name, "url_table_");
+	strcpy(file_name, "results/url_table_");
 	strcat(file_name, file_tag);
 	strcat(file_name, ".txt");
 	fp = fopen(file_name, "w");
