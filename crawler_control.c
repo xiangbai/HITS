@@ -261,14 +261,16 @@ int main()
 	
 	// display
 	printf("----------------------\n The results are in\n----------------------\n");
-	printf("score\t\turl\n");
+	printf("auth\t\thub\t\turl\n");
 	for (i = num_links - 1; i >= 0; i--)
 	{
 		char *url_name = url_tostring(super_set_array[i]);
 #ifdef LOG_HITS_RESULTS
-		fprintf(hits_results_file, "%lf\t%s\n", super_set_array[i]->authScore, url_name);
+		fprintf(hits_results_file, "%lf\t%lf\t%s\n", 
+					super_set_array[i]->authScore, super_set_array[i]->hubScore, url_name);
 #endif
-		printf("%lf\t%s\n", super_set_array[i]->authScore, url_name);
+		printf("%lf\t%lf\t%s\n", super_set_array[i]->authScore, 
+					super_set_array[i]->hubScore, url_name);
 		free(url_name);
 	}
 	
