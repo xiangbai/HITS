@@ -6,3 +6,8 @@ cachetest
 intrins.txt
 url_table_pre.txt
 url_table_post.txt
+results/*
+searches/*
+root_sets/*
+google_requests.txt
+redirectlog.txt

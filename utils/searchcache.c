@@ -241,6 +241,8 @@ void setcache2(char *folder, char *searchstring, url_llist *urls)
 	// open file for write
 	char *modifiedsearch = tounderline(searchstring);
 	char *path = getpath(folder, modifiedsearch);
+	path = realloc(path, strlen(path) + 2);
+	strcat(path, "+");
 	
 	FILE *file = fopen(path, "w");
 	

@@ -26,8 +26,8 @@
 #define BUFFER_SIZE 1024
 #define PORT_80 "80"
 
-#define ROOT_GRAPH_SIZE			10
-#define MAX_BACKLINKS			5
+#define ROOT_GRAPH_SIZE			50
+#define MAX_BACKLINKS			25
 #define MAX_DOMAIN_TO_DOMAIN	4
 
 #define LOG_INTRINSIC_VALUE
@@ -181,7 +181,8 @@ int main()
 	
 	// get last node in urltable
 	lnode *last_in_root = urltable.back;
-
+	int end_of_root_inedx = urltable.size;
+	
 	char pre_filename[100];
 	strcpy(pre_filename, "pre_");
 	strcat(pre_filename, search_string);
@@ -205,13 +206,13 @@ int main()
 							 &urltable, request, port_string, regexparser);
 	
 	// clean the outlink strings in the newly added entries to urltable
-	int total_urls = urltable.size;
+	int total_out_in = urltable.size - end_of_root_inedx;
 	int counter = 0;
 	lnode *current_node = last_in_root->next;
 	while (current_node)
 	{
 		counter++;
-		printf("\nCleaning backlink/outlink index %d of %d total urls in table", counter, total_urls);
+		printf("\nCleaning backlink/outlink %d of %d total b/o links in table", counter, total_out_in);
 		url_w_string_links *current_url = current_node->data;
 		clean_outlinks(current_url, 0);
 		current_node = current_node->next;
@@ -245,7 +246,7 @@ int main()
 	char meta_data[25];
 	sprintf(meta_data, "_RG=%d_MBL=%d_MD2D=%d", ROOT_GRAPH_SIZE, MAX_BACKLINKS, MAX_DOMAIN_TO_DOMAIN);
 	strcat(search_string, meta_data);
-	//setcache(path, search_string, &super_set_list);
+	setcache(path, search_string, &super_set_list);
 
 	
 	/* DEMO: this should be moved out of crawler_control eventually */
@@ -876,6 +877,7 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
 				
 				free(code);
 				close(socket);
+				
 				int ret_val = validate_url_and_populate(url_from_redirect, redir_stack, all_links,
 														urls_w_strings_list, request,port_string, regexparser);
 				return ret_val;
@@ -956,8 +958,14 @@ void validate_url_string_list(urlinfo origin_url, string_llist *links_in_search,
 				freeURL(url_from_search);
 			}
 			else
-				get_outlinks_and_populate(url_from_search, all_links,
+			{
+				/*
+				validate_url_and_populate(url_from_search, redir_stack, all_links,
 										  urls_w_strings_list, request, port_string, regexparser);
+				 */
+				get_outlinks_and_populate(url_from_search, all_links,
+														urls_w_strings_list, request,port_string, regexparser);
+			}
 		}
 	}
 }
@@ -1044,8 +1052,13 @@ void clean_outlinks(url_w_string_links *current_url, int add_urls)
 							{
 								char port[3] = PORT_80;
 								found_url = desired_url;
-								int populate_val = get_outlinks_and_populate(found_url,
+								/*
+								int populate_val = validate_url_and_populate(found_url, &redir_stack,
 										&linksfound, &urltable, request, port, regexparser);
+								*/
+								
+								int populate_val = get_outlinks_and_populate(found_url,
+																			 &linksfound, &urltable, request, port, regexparser);
 								
 								if (populate_val < 2)
 									dont_free_url = 1;
@@ -1282,6 +1295,11 @@ int get_outlinks_and_populate(urlinfo *cur_url, btree *all_links, llist *urls_w_
 	 * INITIAL SETUP: Attempt to connect to cur_url and download the html
 	 */
 	
+	//make entry for table
+	//struct url_w_string_links *url_and_strings = malloc(sizeof(struct url_w_string_links));
+	//url_and_strings->url = cur_url;
+	struct url_w_string_links *url_and_strings = url_w_links_init(cur_url);
+	
 	//generate http GET request
 	getRequest(cur_url, request);
 	
@@ -1300,9 +1318,6 @@ int get_outlinks_and_populate(urlinfo *cur_url, btree *all_links, llist *urls_w_
 #else
 		report_error("This program requires systems to define MSG_NOSIGNAL or SO_NOSIGPIPE");
 #endif
-		
-		struct url_w_string_links *url_and_strings = malloc(sizeof(struct url_w_string_links));
-		url_and_strings->url = cur_url;
 		
 		// get code
 		char *code = loadPage(socket);
@@ -1325,16 +1340,17 @@ int get_outlinks_and_populate(urlinfo *cur_url, btree *all_links, llist *urls_w_
 			url_and_strings->outlinks = *links_in_code;
 		}
 		
-		//insert into url_table
-		llist_push_back(urls_w_strings_list, url_and_strings);
-		
-		//insert into all_links btree
-		btree_insert(all_links, cur_url);
-		
 		free(code);
 		close(socket);
 	}
-	puts("couldn't connect socket");
+	else
+		puts("couldn't connect socket");
 	
-	return 1;
+	//insert into url_table
+	llist_push_back(urls_w_strings_list, url_and_strings);
+	
+	//insert into all_links btree
+	btree_insert(all_links, cur_url);
+	
+	return 1; //to keep things happy, returns 1 no matter what right now
 }
