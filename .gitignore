@@ -7,5 +7,8 @@ intrins.txt
 url_table_pre.txt
 url_table_post.txt
 results/*
-root_sets/*
 links_*
+searches/*
+root_sets/*
+google_requests.txt
+redirectlog.txt
