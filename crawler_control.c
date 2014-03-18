@@ -1,3 +1,5 @@
+#include <time.h>
+#include <unistd.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -25,7 +27,7 @@
 #define PORT_80 "80"
 
 #define ROOT_GRAPH_SIZE			5
-#define MAX_BACKLINKS			1
+#define MAX_BACKLINKS			5
 #define MAX_DOMAIN_TO_DOMAIN	4
 
 #define LOG_INTRINSIC_VALUE
@@ -95,10 +97,17 @@ url_llist redir_stack;      // holds redirected urls
 
 parser *regexparser;
 
+//global time objects
+time_t timer1;
+time_t timer2;
+
 /* main routine for testing our crawler's funcitonality */
 int main()
 {
-
+	timer1 = time(&timer1);
+	timer2 = time(&timer2);
+	
+	
 #ifdef LOG_INTRINSIC_VALUE
 	intrinsic_file = fopen("intrins.txt", "w");
 	printf("%p\n", intrinsic_file);
@@ -1083,8 +1092,23 @@ void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, u
 		
 		clean_outlinks(current_url, 1);
 		
+		//check elapsed time since last backlink req.
+		timer2 = time(&timer2);
+		double diff = difftime(timer2, timer1);
+		if (diff < 10)
+		{
+			printf("\nElapsed time since last b-link req. = %lf \n Sleeping for %lf seconds\n", diff, 10-diff);
+			sleep(10-diff);
+		}
+		else
+		{
+			printf("\nElapsed time since last b-link req. = %lf \n Not sleeping!\n", diff);
+		}
+		
 		//do a backlink request on the current url
 		get_back_links(search_engine, current_url->url, port_string, request, regexparser, destination);
+		
+		timer1 = time(&timer1);
 		
 		// go to next node and get its url_w_string_links
 		current_url_node = current_url_node->next;
