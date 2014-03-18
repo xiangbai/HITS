@@ -1,0 +1,58 @@
+TOTAL URLS = 13
+
+URL: www.hotels.com/de1679095/hotels-near-dogo-park-matsuyama-japan/
+	Outlinks:
+	http://www.hoteles.com/de1679095/hotel-cerca-de-parque-dogo-matsuyama-japon/?pos=HCOM_LATAM&locale=es_MX
+	http://www.hoteis.com/de1679095/hoteis-proximos-a-parque-de-dogo-matsuyama-japao/?pos=HCOM_BR&locale=pt_BR
+	http://pt.hoteis.com/de1679095/hoteis-proximos-a-parque-de-dogo-matsuyama-japao/
+	http://es.hoteles.com/de1679095/hotel-cerca-de-parque-dogo-matsuyama-japon/
+	http://www.verisign.com/ssl-certificate/
+	/html/blank.html#http://www.agentrez.com/
+	http://www.squidoo.com/lensmaster/bookmark?http%3A%2F%2Fwww.hotels.com%2Fde1679095%2Fhotels-near-dogo-park-matsuyama-japan%2F
+
+URL: www.panoramio.com/photo/96663024
+	Outlinks:
+
+URL: pt.hoteis.com/de1679095/hoteis-proximos-a-parque-de-dogo-matsuyama-japao/
+	Outlinks:
+	http://www.hotels.com/de1679095/hotels-near-dogo-park-matsuyama-japan/?pos=HCOM_US&locale=en_US
+	http://www.hotels.com/de1679095/hotels-near-dogo-park-matsuyama-japan/?pos=HCOM_US&locale=en_US
+	http://es.hoteles.com/de1679095/hotel-cerca-de-parque-dogo-matsuyama-japon/
+	/html/blank.html#http://www.agentrez.com/
+	http://www.squidoo.com/lensmaster/bookmark?http%3A%2F%2Fpt.hoteis.com%2Fde1679095%2Fhoteis-proximos-a-parque-de-dogo-matsuyama-japao%2F
+
+URL: es.hoteles.com/de1679095/hotel-cerca-de-parque-dogo-matsuyama-japon/
+	Outlinks:
+	http://www.hotels.com/de1679095/hotels-near-dogo-park-matsuyama-japan/?pos=HCOM_US&locale=en_US
+	http://www.hotels.com/de1679095/hotels-near-dogo-park-matsuyama-japan/?pos=HCOM_US&locale=en_US
+	http://pt.hoteis.com/de1679095/hoteis-proximos-a-parque-de-dogo-matsuyama-japao/
+	/html/blank.html#http://www.agentrez.com/
+	http://www.squidoo.com/lensmaster/bookmark?http%3A%2F%2Fes.hoteles.com%2Fde1679095%2Fhotel-cerca-de-parque-dogo-matsuyama-japon%2F
+
+URL: www.symantec.com/theme.jsp
+	Outlinks:
+
+URL: www.agentrez.com
+	Outlinks:
+
+URL: www.squidoo.com/lensmaster/bookmark
+	Outlinks:
+
+URL: it.hotels.com
+	Outlinks:
+	/html/blank.html#http://www.agentrez.com/
+
+URL: www.isleuth.com/jacksonvillephone.htm
+	Outlinks:
+
+URL: www.mydestination.com/johannesburg
+	Outlinks:
+
+URL: lucian.uchicago.edu/blogs/vrc/category/news/
+	Outlinks:
+
+URL: www.ppgis.net/vgi.htm
+	Outlinks:
+
+URL: www.greece.com/destinations/Peloponnese/Messinia/Settlement/Ano_Doli.html
+	Outlinks:

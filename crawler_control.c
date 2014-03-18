@@ -1,4 +1,8 @@
+#include <time.h>
+#include <unistd.h>
+#include <errno.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -22,11 +26,12 @@
 #define BUFFER_SIZE 4096
 #define PORT_80 "80"
 
-#define ROOT_GRAPH_SIZE			200
+#define ROOT_GRAPH_SIZE			60
 #define MAX_BACKLINKS			0
 #define MAX_DOMAIN_TO_DOMAIN	4
 
-#define LOG_INTRINSIC_VALUE
+//#define LOG_INTRINSIC_VALUE
+#define LOG_LINKS
 #define LOG_ROOT_SET
 #define LOG_GOOGLE_REQUESTS
 #define LOG_HITS_RESULTS
@@ -73,7 +78,9 @@ void save_root_graph(llist *urltable, char *search_string);
 #ifdef LOG_ROOT_SET
 	FILE *root_set_file;
 #endif
-
+#ifdef LOG_LINKS
+	FILE *links_file;
+#endif
 #ifdef LOG_GOOGLE_REQUESTS
 	FILE *google_req_file;
 	int potential_backlinks_found = 0;
@@ -93,10 +100,17 @@ url_llist redir_stack;      // holds redirected urls
 
 parser *regexparser;
 
+//global time objects
+time_t timer1;
+time_t timer2;
+
 /* main routine for testing our crawler's funcitonality */
 int main()
 {
-
+	timer1 = time(&timer1);
+	timer2 = time(&timer2);
+	
+	
 #ifdef LOG_INTRINSIC_VALUE
 	intrinsic_file = fopen("intrins.txt", "w");
 	printf("%p\n", intrinsic_file);
@@ -116,7 +130,6 @@ int main()
 	char port_string[3];
 	strcpy(port_string, PORT_80);
 	char search_string[100] = "";    //holds the user search query for autonaming save files
-
 	// initialize domain regex (required before domaininfo may be used)
 	domain_regex_init();
 	
@@ -169,6 +182,12 @@ int main()
 	
 	// get last node in urltable
 	lnode *last_in_root = urltable.back;
+
+	#ifdef LOG_LINKS
+		char fname[BUFFER_SIZE] = "links_";
+		strcat(fname, search_string);
+		links_file = fopen(fname, "w");
+	#endif
 
 	char pre_filename[100];
 	strcpy(pre_filename, "pre_");
@@ -288,6 +307,10 @@ int main()
 #ifdef LOG_INTRINSIC_VALUE
 	fclose(intrinsic_file);
 #endif
+	#ifdef LOG_LINKS
+		fclose(links_file);
+	#endif
+
 	return 0;
 }
 
@@ -296,8 +319,9 @@ void save_root_graph(llist *urltable, char* search_string)
 	char filename[100] = "root_sets/";
 	strcat(filename, search_string);
 	
-	FILE *file = fopen(filename, "w");
-	
+	FILE *file;
+	if (!(file = fopen(filename, "w")))
+		printf("ERROR: %s\n", strerror(errno));
 	lnode *current_node = urltable->front;
 	while (current_node)
 	{
@@ -316,6 +340,12 @@ void save_root_graph(llist *urltable, char* search_string)
  */
 void link_outlinks(llist *urltable, btree *all_links)
 {
+	#ifdef LOG_LINKS
+		fprintf(links_file, "----------------------------/n");
+		fprintf(links_file, "--------- LINKING ----------/n");
+		fprintf(links_file, "----------------------------/n");
+	#endif
+	
 	puts("LINKING");
 	char string_link[BUFFER_SIZE];	
 	int urlindex = -1;
@@ -372,6 +402,14 @@ void link_outlinks(llist *urltable, btree *all_links)
 							fprintf(intrinsic_file, "%d: ", is_intrinsic(current_url->url, outlink));
 							fprintf(intrinsic_file, "linking: %s -> %s\n",
 									url_tostring(current_url->url), url_tostring(outlink));
+						#endif
+							
+						#ifdef LOG_LINKS
+							char *temp1 = url_tostring(current_url->url);
+							char *temp2 = url_tostring(outlink);
+							fprintf(links_file, "%s --> %s\n", temp1,temp2);
+							free(temp1);
+							free(temp2);
 						#endif
 					}
 				}
@@ -642,17 +680,18 @@ void incrementResultsRequest(char *path, char *clone, int start, int numResults)
  */
 void getUserSearchQuery(char *path, char *save_query)
 {
-	char templine[(PATH_LENGTH/2)];
+	char templine[BUFFER_SIZE];
 	char *token;
-	const char delims[2] = {' ', '\n'};//"\n";
+	//const char delims[2] = " \n";//"\n";
 	
 	fputs("enter a line of text\n", stdout);
 	
 	
-	if (fgetline(templine, (int)sizeof(templine)-1) > 0) //read a line
+	if (fgets(templine, BUFFER_SIZE, stdin)) //read a line
 	{
-		token = strtok(templine, delims);
-		
+		printf("you entered = %s\n", templine);
+		token = strtok(templine, " ");
+		printf("token = %s\n", token);		
 		
 		strcpy(path, "search?q=");
 		
@@ -660,7 +699,8 @@ void getUserSearchQuery(char *path, char *save_query)
 		{
 			strcat(path, token);
 			strcat(save_query, token);
-			token = strtok(NULL, delims);
+			token = strtok(NULL, " ");
+			printf("token = %s\n", token);
 		}
 		
 		while (token != NULL)
@@ -669,12 +709,20 @@ void getUserSearchQuery(char *path, char *save_query)
 			strcat(save_query, "_");
 			strcat(path, token);
 			strcat(save_query, token);
-			token = strtok(NULL, delims);
+			token = strtok(NULL, " ");
+			printf("token = %s\n", token);
 		}
+		
+		path[strlen(path)-1] = '\0';
 		strcat(path, "&safe=active");
 	}
 	else
 		report_error("getUserSearchQuery failed");
+	
+	save_query[strlen(save_query)-1] = '\0';
+	
+	printf("save_query = %s\n", save_query);
+	printf("path = %s\n", path);
 }
 
 /*
@@ -970,6 +1018,16 @@ void clean_outlinks(url_w_string_links *current_url, int add_urls)
 					 */
 					// make dummy domaininfos for searching purposes
 					domaininfo *desired_domain = domaininfo_init(current_url->url->host);
+					
+					if (desired_domain->name == NULL)
+					{
+						freedomain(desired_domain);
+						freeURL(desired_url);
+						free(desired_url);
+						num_outlinks_to_check--;
+						continue;
+					}
+					
 					domaininfo *fromdomain = btree_find(&domains, desired_domain);
 					
 					if (fromdomain == NULL)	// if desired domain not in domains, it is the new fromdomain
@@ -985,6 +1043,15 @@ void clean_outlinks(url_w_string_links *current_url, int add_urls)
 	
 					// dummy domain for searching
 					domaininfo *todomain = domaininfo_init(desired_url->host);
+					
+					if (todomain->name == NULL)
+					{
+						freedomain(todomain);
+						freeURL(desired_url);
+						free(desired_url);
+						num_outlinks_to_check--;
+					}
+					
 					int num_domain_links = domaininfo_numlinks_to_domain(fromdomain, todomain);
 
 					// free dummy to-domain
@@ -1034,6 +1101,14 @@ void clean_outlinks(url_w_string_links *current_url, int add_urls)
 							#endif
 							string_llist_push_back(&current_url->outlinks, new_string_link);
 							domaininfo_puturl(fromdomain, found_url);
+							
+							#ifdef LOG_LINKS
+								char *temp1 = url_tostring(current_url->url);
+								char *temp2 = url_tostring(found_url);
+								fprintf(links_file, "%s --> %s\n", temp1,temp2);
+								free(temp1);
+								free(temp2);
+							#endif
 						}
 					}
 				}
@@ -1070,8 +1145,23 @@ void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, u
 		
 		clean_outlinks(current_url, 1);
 		
+		//check elapsed time since last backlink req.
+		timer2 = time(&timer2);
+		double diff = difftime(timer2, timer1);
+		if (diff < 10)
+		{
+			printf("\nElapsed time since last b-link req. = %lf \n Sleeping for %lf seconds\n", diff, 10-diff);
+			sleep(10-diff);
+		}
+		else
+		{
+			printf("\nElapsed time since last b-link req. = %lf \n Not sleeping!\n", diff);
+		}
+		
 		//do a backlink request on the current url
 		//get_back_links(search_engine, current_url->url, port_string, request, regexparser, destination);
+		
+		timer1 = time(&timer1);
 		
 		// go to next node and get its url_w_string_links
 		current_url_node = current_url_node->next;
