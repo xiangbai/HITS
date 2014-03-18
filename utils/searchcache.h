@@ -36,4 +36,6 @@ url_llist *getcache(char *folder, char *searchstring);
  */
 void setcache(char *folder, char *searchstring, struct url_llist *urls);
 
+void setcache2(char *folder, char *searchstring, struct url_llist *urls);
+
 #endif

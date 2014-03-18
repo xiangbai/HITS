@@ -26,7 +26,7 @@
 #define BUFFER_SIZE 1024
 #define PORT_80 "80"
 
-#define ROOT_GRAPH_SIZE			5
+#define ROOT_GRAPH_SIZE			10
 #define MAX_BACKLINKS			5
 #define MAX_DOMAIN_TO_DOMAIN	4
 
@@ -67,6 +67,7 @@ void get_back_links(urlinfo *search_engine, urlinfo *current_url, char *port_str
 void clean_outlinks(url_w_string_links *current_url, int add_urls);
 void print_url_table(llist *urltable, char *file_tag);
 void save_root_graph(llist *urltable, char *search_string);
+int get_outlinks_and_populate(urlinfo *cur_url, btree *all_links, llist *urls_w_strings_list, char *request, char *port_string, parser *regexparser);
 
 #ifdef LOG_INTRINSIC_VALUE
 	FILE *intrinsic_file;
@@ -204,9 +205,13 @@ int main()
 							 &urltable, request, port_string, regexparser);
 	
 	// clean the outlink strings in the newly added entries to urltable
+	int total_urls = urltable.size;
+	int counter = 0;
 	lnode *current_node = last_in_root->next;
 	while (current_node)
 	{
+		counter++;
+		printf("\nCleaning backlink/outlink index %d of %d total urls in table", counter, total_urls);
 		url_w_string_links *current_url = current_node->data;
 		clean_outlinks(current_url, 0);
 		current_node = current_node->next;
@@ -240,7 +245,8 @@ int main()
 	char meta_data[25];
 	sprintf(meta_data, "_RG=%d_MBL=%d_MD2D=%d", ROOT_GRAPH_SIZE, MAX_BACKLINKS, MAX_DOMAIN_TO_DOMAIN);
 	strcat(search_string, meta_data);
-	setcache(path, search_string, &super_set_list);
+	//setcache(path, search_string, &super_set_list);
+
 	
 	/* DEMO: this should be moved out of crawler_control eventually */
 	
@@ -253,6 +259,8 @@ int main()
 	link_inlinks(super_set_array, num_links);
 	puts("running hits");
 	compute_hub_and_auth(super_set_array, num_links, arbitrary_num_iterations);
+	
+	setcache2(path, search_string, &super_set_list);
 	
 	// sort
 	puts("sorting..");
@@ -948,7 +956,7 @@ void validate_url_string_list(urlinfo origin_url, string_llist *links_in_search,
 				freeURL(url_from_search);
 			}
 			else
-				validate_url_and_populate(url_from_search, redir_stack, all_links, 
+				get_outlinks_and_populate(url_from_search, all_links,
 										  urls_w_strings_list, request, port_string, regexparser);
 		}
 	}
@@ -1036,7 +1044,7 @@ void clean_outlinks(url_w_string_links *current_url, int add_urls)
 							{
 								char port[3] = PORT_80;
 								found_url = desired_url;
-								int populate_val = validate_url_and_populate(found_url, &redir_stack, 
+								int populate_val = get_outlinks_and_populate(found_url,
 										&linksfound, &urltable, request, port, regexparser);
 								
 								if (populate_val < 2)
@@ -1148,6 +1156,7 @@ void get_back_links(urlinfo *engine, urlinfo *current_url, char *port_string, ch
 {
 	//connect to engine
 	int socket = connect_socket(engine->host, port_string, stdout);
+	int num_backlink_strings = potential_backlinks_found;
 	
 	if (socket >= 0)
 	{
@@ -1190,6 +1199,7 @@ void get_back_links(urlinfo *engine, urlinfo *current_url, char *port_string, ch
 		// push the found strings to destination
 		char link_in_code[BUFFER_SIZE];
 		string_llist_pop_front(&links_in_code, link_in_code);
+		
 		while(links_in_code.front)
 		{
 #ifdef LOG_GOOGLE_REQUESTS
@@ -1198,6 +1208,11 @@ void get_back_links(urlinfo *engine, urlinfo *current_url, char *port_string, ch
 			string_llist_push_back(destination, link_in_code);
 			string_llist_pop_front(&links_in_code, link_in_code);
 		}
+		
+		num_backlink_strings = potential_backlinks_found - num_backlink_strings;
+#ifdef LOG_GOOGLE_REQUESTS
+		fprintf(google_req_file, "\n%d backlink strings scraped\n", num_backlink_strings);
+#endif
 	}
 	else
 	{
@@ -1259,4 +1274,67 @@ void print_url_table(llist *urltable, char *file_tag)
 	
 	fclose(fp);
 	
+}
+
+int get_outlinks_and_populate(urlinfo *cur_url, btree *all_links, llist *urls_w_strings_list, char *request, char *port_string, parser *regexparser)
+{
+	/*
+	 * INITIAL SETUP: Attempt to connect to cur_url and download the html
+	 */
+	
+	//generate http GET request
+	getRequest(cur_url, request);
+	
+	// notify user of url
+	printf("\nURL: %s/%s%s\n", cur_url->host, cur_url->path, cur_url->filename);
+	
+	// create socket
+	int socket = connect_socket(cur_url->host, port_string, stdout);
+	if (socket >= 0)
+	{
+		// send http requrest (MSG__NOSIGNAL prevents exiting on SIGPIPE error)
+#if defined(SO_NOSIGPIPE)
+		send(socket, request, strlen(request), 0);
+#elif defined(MSG_NOSIGNAL)
+		send(socket, request, strlen(request), MSG_NOSIGNAL);
+#else
+		report_error("This program requires systems to define MSG_NOSIGNAL or SO_NOSIGPIPE");
+#endif
+		
+		struct url_w_string_links *url_and_strings = malloc(sizeof(struct url_w_string_links));
+		url_and_strings->url = cur_url;
+		
+		// get code
+		char *code = loadPage(socket);
+		
+		// test if the page loaded properly
+		int statuscode = get_status_code(code);
+		printf("status code: %d\n", statuscode);
+		
+		if (statuscode >= 200 && statuscode < 300) //success - get outlinks 
+		{
+			// create linked list to hold hyperlinks from code
+			string_llist *links_in_code = malloc(sizeof(string_llist));
+			string_llist_init(links_in_code);
+			
+			// puts url strings into links_in_code
+			int substrings[] = {1};
+			get_links(code, regexparser, links_in_code, substrings, 1);
+			
+			//add outlinks to url_table entry
+			url_and_strings->outlinks = *links_in_code;
+		}
+		
+		//insert into url_table
+		llist_push_back(urls_w_strings_list, url_and_strings);
+		
+		//insert into all_links btree
+		btree_insert(all_links, cur_url);
+		
+		free(code);
+		close(socket);
+	}
+	puts("couldn't connect socket");
+	
+	return 1;
 }

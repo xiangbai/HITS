@@ -217,3 +217,87 @@ void setcache(char *folder, char *searchstring, url_llist *urls)
 	free(path);
 	fclose(file);
 }
+
+void setcache2(char *folder, char *searchstring, url_llist *urls)
+{
+	long i, j;
+	urlinfo *url;
+	url_node *node = urls->front;
+	btree indexed_urls;
+	btree_init(&indexed_urls, (void *)indexed_urlcompare);
+	
+	// loop 1: index urls
+	for (i = 0; i < urls->size; i++)
+	{
+		indexed_url *iurl = malloc(sizeof(indexed_url));
+		iurl->url = node->url;
+		iurl->index = i;
+		
+		btree_insert(&indexed_urls, iurl);
+		
+		node = node->next;
+	}
+	
+	// open file for write
+	char *modifiedsearch = tounderline(searchstring);
+	char *path = getpath(folder, modifiedsearch);
+	
+	FILE *file = fopen(path, "w");
+	
+	// write number of links
+	fprintf(file, "%d Total URLS\n", urls->size);
+	
+	// loop 2: write data
+	node = urls->front;
+	indexed_url urltofind;
+	for (i = 0; i < urls->size; i++)
+	{
+		url = node->url;
+		
+		/*
+		 * Write url data
+		 * format:	index url numlinks
+		 *		link1 link2 link3
+		 */
+		// write header
+		char *urlstring = url_tostring(url);
+		indexed_url *this_url = btree_find(&indexed_urls, &url);
+		
+		fprintf(file, "INDEX %lu - %s\n\tOUTLINKS = %d | ", this_url->index, urlstring, url->outlinks.size);
+		free(urlstring);
+		// write links
+		lnode *outlink_node = url->outlinks.front;
+		for (j = 0; j < url->outlinks.size; j++)
+		{
+			// find indexed url so its index can be recorded
+			urltofind.url = outlink_node->data;
+			indexed_url *iurl = btree_find(&indexed_urls, &urltofind);
+			
+			// write it, followed by a space
+			fprintf(file, "%lu ", iurl->index);
+			outlink_node = outlink_node->next;
+		}
+		//if (url->outlinks.size)
+		fprintf(file, "\n\tINLINKS  = %d | ", url->inlinks.size);
+		
+		lnode *inlink_node = url->inlinks.front;
+		for (j = 0; j < url->inlinks.size; j++)
+		{
+			// find indexed url so its index can be recorded
+			urltofind.url = inlink_node->data;
+			indexed_url *iurl = btree_find(&indexed_urls, &urltofind);
+			
+			// write it, followed by a space
+			fprintf(file, "%lu ", iurl->index);
+			inlink_node = inlink_node->next;
+		}
+		
+		fprintf(file, "\n");
+		node = node->next;
+	}
+	
+	btree_free(&indexed_urls, 1);
+	free(modifiedsearch);
+	free(path);
+	fclose(file);
+}
