@@ -3,6 +3,7 @@
 #include "utils/general_utils.h"
 #include "utils/parser.h"
 #include "utils/llist.h"
+#include "utils/domaininfo.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,6 +43,25 @@
 #define URL_REGEX_PATH 9
 #define URL_REGEX_PATH2 8
 #define URL_REGEX_FILE 11
+
+#define BLACKLIST
+
+#ifdef BLACKLIST
+
+int blacklist_made = 0;
+#define num_blacklist	12
+domaininfo *blacklist[num_blacklist];
+
+char *blacklist_strings[num_blacklist] = {
+	"wikimedia.org", "creativecommons.org",
+	"soap.com", "wag.com",
+	"diapers.com", "yoyo.com",
+	"vine.com", "bookworm.com",
+	"beautybar.com", "afterschool.com",
+	"casa.com", "look.com"
+};
+
+#endif
 
 urlinfo *makeURL(char *givenAddress, urlinfo *currentURL);
 
@@ -196,6 +216,33 @@ urlinfo *makeURL(char *givenAddress, urlinfo *currentURL)
 		if (strlen(array[URL_REGEX_DOMAIN]))
 		{
 			// domain was provided; construct url using just given address
+			
+			// if blacklisting sites, check domains, returning null if blacklisted
+			#ifdef BLACKLIST
+				int k;
+				// construct blacklist if needed
+				if (blacklist_made == 0)
+				{
+					for (k = 0; k < num_blacklist; k++)
+						blacklist[k] = domaininfo_init(blacklist_strings[k]);
+					blacklist_made = 1;
+				}
+				
+				domaininfo* dummy = domaininfo_init(array[URL_REGEX_DOMAIN]);
+				if (dummy)
+				{
+					if(dummy->name)
+					{	// check if blacklisted
+						for (k = 0; k < num_blacklist; k++)
+							if (compare_domain(blacklist[k], dummy) == 0)	// match
+							{
+								return NULL;
+							}
+					}
+					freedomain(dummy);
+				}
+			#endif
+			
 			newurl->host = array[URL_REGEX_DOMAIN];
 			newurl->path = newpath;
 		}
