@@ -209,3 +209,16 @@ void freedomain(domaininfo *domain)
 	// free the binary tree last
 	btree_free(&domain->outlinks, 0);
 }
+
+void print_domains_to_file(FILE *fp, btree *domains)
+{
+	/*
+	domaininfo **array = (domaininfo **)btree_toarray(domains);
+	int i;
+	
+	for (i = 0; i < domains->numElems; i++)
+	{
+		domainlink **
+	}
+	 */
+}

@@ -6,6 +6,7 @@
 #include "parser.h"
 #include "../urlinfo.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 /************************************************
  * domaininfo.h
@@ -109,5 +110,10 @@ int compare_domain_name(char *a, char *b);
  * This will not free the domain name or associated urlinfos
  */
 void freedomain(domaininfo *domain);
+
+/**
+ * Prints domain names and number 
+ */
+void print_domains_to_file(FILE *fp, btree *domains);
 
 #endif
