@@ -44,9 +44,13 @@ void link_inlinks(urlinfo *urls[], int size)
 			// get urlinfo from node
 			urlinfo *url = (urlinfo*)current_node->data;
 			
-			// for each outlink, add url to its outlink
-			llist_push_back(&url->inlinks, urls[i]);
-			
+			// check if inlink to url was already created in get_back_links
+			urlinfo *duplicate = llist_find(&url->inlinks, urls[i]);
+			if (!duplicate)
+			{
+				// for each outlink, add url to its outlink
+				llist_push_back(&url->inlinks, urls[i]);
+			}
 			// increment node
 			current_node = current_node->next;
 		}

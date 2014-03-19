@@ -26,8 +26,8 @@
 #define BUFFER_SIZE 4096
 #define PORT_80 "80"
 
-#define ROOT_GRAPH_SIZE			50
-#define MAX_BACKLINKS			25
+#define ROOT_GRAPH_SIZE			5
+#define MAX_BACKLINKS			5
 #define MAX_DOMAIN_TO_DOMAIN	4
 
 //#define LOG_INTRINSIC_VALUE
@@ -36,6 +36,7 @@
 #define LOG_GOOGLE_REQUESTS
 #define LOG_HITS_RESULTS
 #define LOG_REDIRECTS
+#define LOG_MAKES
 
 //userAgents randomly selected for http requests to avoid getting blocked by google
 char *userAgents[9] =
@@ -65,6 +66,7 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
 void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, url_llist *redir_stack, btree *redir_tree, llist *urltable, char *request, char *port_string, parser *regexparser, string_llist *destination);
 void back_link_request(char *request, urlinfo *engine, urlinfo *url, int num_links);
 void get_back_links(urlinfo *search_engine, urlinfo *current_url, char *port_string, char *request, parser *regexparser, string_llist *destination);
+void get_back_links2(urlinfo *engine, urlinfo *current_url, char *port_string, char *request, parser *regexparser, string_llist *destination);
 void clean_outlinks(url_w_string_links *current_url, int add_urls);
 void print_url_table(llist *urltable, char *file_tag);
 void save_root_graph(llist *urltable, char *search_string);
@@ -85,6 +87,10 @@ int get_outlinks_and_populate(urlinfo *cur_url, btree *all_links, llist *urls_w_
 #ifdef LOG_GOOGLE_REQUESTS
 	FILE *google_req_file;
 	int potential_backlinks_found = 0;
+#endif
+#ifdef LOG_MAKES
+	FILE *success_log;
+	FILE *fail_log;
 #endif
 
 //!is_intrinsic requires the global parser intrin_parser be initialized in main before being called
@@ -126,6 +132,12 @@ int main()
 	redirect_file = fopen("redirectlog.txt", "w");
 #endif
 
+#ifdef LOG_MAKES
+	success_log = fopen("success_log.txt", "w");
+	fail_log = fopen("fail_log.txt", "w");
+#endif
+	
+	
 	char pattern[] = "<a [^>]*?href *= *[\'\"]([^\"\'>]+)[\'\"].*?>";
 	char request[BUFFER_SIZE + 100];
 	char port_string[3];
@@ -209,11 +221,11 @@ int main()
 	fprintf(google_req_file, "\n\nPOTENTIAL BACKLINKS FOUND = %d", potential_backlinks_found);
 #endif
 	
-	//add the backlinks to the urltable
+	/*add the backlinks to the urltable
 	validate_url_string_list(search_engine, &backlinks,
 							 &redir_stack, &linksfound, &redirects,
 							 &urltable, request, port_string, regexparser);
-	
+	*/
 	// clean the outlink strings in the newly added entries to urltable
 	int total_out_in = urltable.size - end_of_root_inedx;
 	int counter = 0;
@@ -320,7 +332,10 @@ int main()
 	#ifdef LOG_LINKS
 		fclose(links_file);
 	#endif
-
+#ifdef LOG_MAKES
+	fclose(success_log);
+	fclose(fail_log);
+#endif
 	return 0;
 }
 
@@ -373,13 +388,10 @@ void link_outlinks(llist *urltable, btree *all_links)
 		while(current_url->outlinks.front)
 		{
 			string_llist_pop_front(&current_url->outlinks, string_link);
-			int len = strlen(string_link);	
 			// construct dummy urlinfo and see if it is in all links
+			// We don't check for NULL because we've already made this URL before
 			urlinfo *desired_url = (urlinfo *)makeURLfromlink(string_link, current_url->url);
 			
-			//if (desired_url)
-			//{
-
 				// attempt to find the outlink
 				urlinfo *outlink = (urlinfo *)btree_find(all_links, desired_url);
 
@@ -423,12 +435,6 @@ void link_outlinks(llist *urltable, btree *all_links)
 						#endif
 					}
 				}
-				//else
-				//{
-				//	exit(1);
-				//	printf("crummy");
-				//}
-			//}
 		}
 		current_url_node = current_url_node->next;
 	}
@@ -968,8 +974,20 @@ void validate_url_string_list(urlinfo origin_url, string_llist *links_in_search,
 		string_llist_pop_front(links_in_search, link_in_search);
 		urlinfo *url_from_search = makeURLfromlink(link_in_search, &origin_url);
 		
-		if (!url_from_search)	// unable to construct url
+		if (url_from_search)
+		{
+#ifdef LOG_MAKES
+			fprintf(success_log, "makeURLfromLink(%s, %s)\n", link_in_search, url_tostring(&origin_url));
+#endif
+		}
+		
+		if (!url_from_search)// unable to construct url
+		{
+#ifdef LOG_MAKES
+			fprintf(fail_log, "makeURLfromLink(%s, %s)\n", link_in_search, url_tostring(&origin_url));
+#endif
 			continue;
+		}
 		else if (btree_find(all_links, url_from_search)) //link already in all_links
 		{
 			freeURL(url_from_search);
@@ -1023,6 +1041,10 @@ void clean_outlinks(url_w_string_links *current_url, int add_urls)
 			
 			if (desired_url)
 			{
+#ifdef LOG_MAKES
+				fprintf(success_log, "makeURLfromLink(%s, %s)\n", new_string_link, url_tostring(current_url->url));
+#endif
+				
 				int intrin_val = is_intrinsic(current_url->url, desired_url);
 				int dont_free_url = 0;
 				int okay_to_link = 0;
@@ -1138,7 +1160,12 @@ void clean_outlinks(url_w_string_links *current_url, int add_urls)
 					freeURL(desired_url);
 				}
 			}
-			
+			else
+			{
+#ifdef LOG_MAKES
+				fprintf(fail_log, "makeURLfromLink(%s, %s)\n", new_string_link, url_tostring(current_url->url));
+#endif
+			}
 			//free(new_string_link);
 			num_outlinks_to_check--;
 		}
@@ -1184,6 +1211,7 @@ void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, u
 		
 		//do a backlink request on the current url
 		//get_back_links(search_engine, current_url->url, port_string, request, regexparser, destination);
+		get_back_links2(search_engine, current_url->url, port_string, request, regexparser, destination);
 		
 		timer1 = time(&timer1);
 		
@@ -1272,9 +1300,115 @@ void get_back_links(urlinfo *engine, urlinfo *current_url, char *port_string, ch
 		while(links_in_code.front)
 		{
 #ifdef LOG_GOOGLE_REQUESTS
+			fprintf(google_req_file, "\n\t%s", link_in_code);
 			potential_backlinks_found++;
 #endif
 			string_llist_push_back(destination, link_in_code);
+			string_llist_pop_front(&links_in_code, link_in_code);
+		}
+		
+		num_backlink_strings = potential_backlinks_found - num_backlink_strings;
+#ifdef LOG_GOOGLE_REQUESTS
+		fprintf(google_req_file, "\n%d backlink strings scraped\n", num_backlink_strings);
+#endif
+	}
+	else
+	{
+		char error_msg[BUFFER_SIZE];
+		sprintf(error_msg,"unable to connect to engine: %s for backlink search on site: %s", engine->host, current_url->host);
+		report_error(error_msg);
+	}
+	close(socket);
+}
+
+/*
+ * Performs a backlink query for *current_url, creates url from strings scraped and links
+ * pushes them to current_url's inlinks. Also add's urls to url_table to get it's outlinks
+ * as well as all_urls
+ */
+void get_back_links2(urlinfo *engine, urlinfo *current_url, char *port_string, char *request, parser *regexparser, string_llist *destination)
+{
+	//connect to engine
+	int socket = connect_socket(engine->host, port_string, stdout);
+	int num_backlink_strings = potential_backlinks_found;
+	
+	if (socket >= 0)
+	{
+		puts("\nconnected to:\n");
+		
+		back_link_request(request, engine, current_url, MAX_BACKLINKS);
+		
+		printf("sending backlink request\n%s", request);
+		
+#ifdef LOG_GOOGLE_REQUESTS
+		fprintf(google_req_file, "\n\nRequest backlinks for : %s", url_tostring(current_url));
+#endif
+		send(socket, request, strlen(request), 0);
+		
+		char *code = loadPage(socket);
+		printf("\nBacklink request returned with code: %d\n", get_status_code(code));
+		
+#ifdef LOG_GOOGLE_REQUESTS
+		fprintf(google_req_file, "\nBacklink request returned with code: %d", get_status_code(code));
+#endif
+		
+		// create linked list to hold hyperlinks from code
+		string_llist links_in_code;
+		string_llist_init(&links_in_code);
+		
+		// linked list to hold <a> tags and associated urls
+		string_llist *tags_and_urls = malloc(sizeof(string_llist));
+		string_llist_init(tags_and_urls);
+		
+		
+		//get links from code and put in tags_and_urls
+		int substrings[] = {0,1};
+		get_links(code, regexparser, tags_and_urls, substrings, 2);
+		free(code);
+		
+		//clean tags_and_urls and put in links_in_code
+		clean_search_results(tags_and_urls, &links_in_code);
+		free(tags_and_urls);
+		
+		// push the found strings to destination
+		char link_in_code[BUFFER_SIZE];
+		string_llist_pop_front(&links_in_code, link_in_code);
+		
+		while(links_in_code.front)
+		{
+#ifdef LOG_GOOGLE_REQUESTS
+			fprintf(google_req_file, "\n\t%s", link_in_code);
+			potential_backlinks_found++;
+#endif
+			urlinfo *backlink = makeURLfromlink(link_in_code, current_url);
+			
+			if (backlink)
+			{
+				urlinfo *desired_url = btree_find(&linksfound, backlink);
+				if (desired_url)
+				{
+					// force link between current_url and it's inlink
+					llist_push_back(&current_url->inlinks, desired_url);
+					llist_push_back(&desired_url->outlinks, current_url);
+					freeURL(backlink);
+					backlink = NULL;
+				}
+				else
+				{
+					// force link between current_url and it's inlink
+					llist_push_back(&current_url->inlinks, backlink);
+					llist_push_back(&backlink->outlinks, current_url);
+					
+					// push to url_table for getting outlinks of the backlink
+					url_w_string_links *table_entry = url_w_links_init(backlink);
+					llist_push_back(&urltable, table_entry);
+					
+					// insert into linksfound
+					btree_insert(&linksfound, backlink);
+				}
+			}
+			
+			//string_llist_push_back(destination, link_in_code);
 			string_llist_pop_front(&links_in_code, link_in_code);
 		}
 		

@@ -12,3 +12,6 @@ searches/*
 root_sets/*
 google_requests.txt
 redirectlog.txt
+backlink.txt
+success_log.txt
+fail_log.txt
