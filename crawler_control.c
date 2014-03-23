@@ -26,8 +26,8 @@
 #define BUFFER_SIZE 4096
 #define PORT_80 "80"
 
-#define ROOT_GRAPH_SIZE			5
-#define MAX_BACKLINKS			5
+#define ROOT_GRAPH_SIZE			200
+#define MAX_BACKLINKS			50
 
 #define MAX_DOMAIN_TO_DOMAIN	4
 
@@ -289,7 +289,7 @@ int main()
 	
 	// run hits
 	int num_links = (int)linksfound.numElems;
-	int arbitrary_num_iterations = 1;
+	int arbitrary_num_iterations = 20;
 	
 	// run HITS
 	puts("linking inlinks");
@@ -1221,15 +1221,17 @@ void validate_outlinks_get_backlinks(urlinfo *search_engine, btree *all_links, u
 		double diff = difftime(timer2, timer1);
 		if (MAX_BACKLINKS)
 		{
-			if (diff < 10)
-			{
-				printf("\nElapsed time since last b-link req. = %lf \n Sleeping for %lf seconds\n", diff, 10-diff);
-				sleep(10-diff);
-			}
-			else
-			{
-				printf("\nElapsed time since last b-link req. = %lf \n Not sleeping!\n", diff);
-			}
+			//if (diff < 10)
+			//{
+				int random = rand() % 30 + 20;
+				//printf("\nElapsed time since last b-link req. = %lf \n Sleeping for %lf seconds\n", diff, 10-diff);
+				sleep(random);
+				//sleep(10-diff);
+			//}
+			//else
+			//{
+			//	printf("\nElapsed time since last b-link req. = %lf \n Not sleeping!\n", diff);
+			//}
 		}
 		
 		//do a backlink request on the current url
