@@ -159,6 +159,9 @@ urlinfo *makeURL(char *givenAddress, urlinfo *currentURL)
 	urlinfo *newurl = NULL;
 	int i;
 
+	if (strlen(givenAddress) >= PATH_LENGTH)
+		return NULL;
+	
 	// make regex if it doesn't exist yet
 	if (regex == NULL)
 		regex = init_parser(URL_REGEX);
