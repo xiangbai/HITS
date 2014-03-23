@@ -1138,6 +1138,7 @@ void clean_outlinks(url_w_string_links *current_url, int add_urls)
 					freeURL(desired_url);
 					free(desired_url);
 					num_outlinks_to_check--;
+					continue;
 				}
 				
 				int num_domain_links = domaininfo_numlinks_to_domain(fromdomain, todomain);
