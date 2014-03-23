@@ -26,8 +26,8 @@
 #define BUFFER_SIZE 4096
 #define PORT_80 "80"
 
-#define ROOT_GRAPH_SIZE			10
-#define MAX_BACKLINKS			3
+#define ROOT_GRAPH_SIZE			200
+#define MAX_BACKLINKS			50
 
 #define MAX_DOMAIN_TO_DOMAIN	4
 
@@ -441,6 +441,7 @@ void link_outlinks(llist *urltable, btree *all_links)
 			
 			// free dummy variable
 			freeURL(desired_url);
+			free(desired_url);
 			desired_url = NULL;
 			
 			// if outlink wasn't found, check redirects
@@ -801,6 +802,7 @@ void add_links_to_redirect_tree(btree *redir_tree, url_llist *redir_stack, urlin
 		good_bad = redirect_init(url_tostring(temp), valid_url);
 		btree_insert(redir_tree, good_bad);
 		freeURL(temp);
+		free(temp);
 		temp = url_llist_pop_front(redir_stack);
 	}
 }
@@ -922,7 +924,7 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
 			if (url_from_all_links) //if temp != NULL, then redirect is NOT a new link
 			{
 				freeURL(url_from_redirect); //duplicate url so we need to free it
-				
+				free(url_from_redirect);
 #ifdef LOG_REDIRECTS
 				char *r = url_tostring(url_from_all_links);
 				fprintf(redirect_file, " IN ALLLINKS %s\n", r);
@@ -973,6 +975,7 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
 					puts("popping and freeing redir_stack");
 					temp_url = url_llist_pop_front(redir_stack);
 					freeURL(temp_url);
+					free(temp_url);
 				}
 				return 0;
 			}//END CASE 2c
@@ -993,6 +996,7 @@ int validate_url_and_populate(urlinfo *cur_url, url_llist *redir_stack, btree *a
 				puts("popping and freeing redir_stack");
 				temp_url = url_llist_pop_front(redir_stack);
 				freeURL(temp_url);
+				free(temp_url);
 			}
 			close(socket);
 			return 0;
@@ -1034,6 +1038,7 @@ void validate_url_string_list(urlinfo origin_url, string_llist *links_in_search,
 		else if (btree_find(all_links, url_from_search)) //link already in all_links
 		{
 			freeURL(url_from_search);
+			free(url_from_search);
 		}
 		else
 		{
@@ -1043,6 +1048,7 @@ void validate_url_string_list(urlinfo origin_url, string_llist *links_in_search,
 			if (found_redirect)
 			{
 				freeURL(url_from_search);
+				free(url_from_search);
 			}
 			else
 			{

@@ -409,6 +409,6 @@ void freeURL(urlinfo *url)
 	url->path = NULL;
 	url->filename = NULL;
 	
-	free(url);
+	//free(url);
 	//return next;
 }
