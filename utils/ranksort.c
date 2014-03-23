@@ -8,6 +8,11 @@ void swap(urlinfo **urlArray, int index1, int index2);
 int partition_it(urlinfo **urlArray, int left, int right, double pivot);
 void insertion_sort(urlinfo **urlArray, int left, int right);
 
+void rec_quick_sort_hub(urlinfo **urlArray, int left, int right);
+double median_of_3_hub(urlinfo **urlArray, int left, int right);
+int partition_it_hub(urlinfo **urlArray, int left, int right, double pivot);
+void insertion_sort_hub(urlinfo **urlArray, int left, int right);
+
 /*
  * Public method for quicksort on array of urlinfo pointers
  */
@@ -100,6 +105,95 @@ void insertion_sort(urlinfo **urlArray, int left, int right)
         in = out;
         
         while (in > left && urlArray[in-1]->authScore >= temp->authScore)
+        {
+            urlArray[in] = urlArray[in-1];
+            --in;
+        }
+        urlArray[in] = temp;
+    }
+}
+/*
+ * Public method for quicksort on array of urlinfo pointers
+ */
+void rank_sort_hub(urlinfo **urlArray, int urlSize)
+{
+    rec_quick_sort_hub(urlArray, 0, urlSize-1);
+}
+
+/*
+ * Private helper method for rank_sort, the recursive call
+ */
+void rec_quick_sort_hub(urlinfo **urlArray, int left, int right)
+{
+    int size = right-left+1;
+    if (size < 10)
+        insertion_sort_hub(urlArray, left, right);
+    else
+    {
+        double median = median_of_3_hub(urlArray, left, right);
+        int partition = partition_it_hub(urlArray, left, right, median);
+        rec_quick_sort_hub(urlArray, left, partition-1);
+        rec_quick_sort_hub(urlArray, partition-1, right);
+    }
+}
+
+/*
+ * Private helper method for rank_sort, returns the pivot 
+ * value for partitioning by taking the median of the first,
+ * middle, and last elements of a sub-array.
+ */
+double median_of_3_hub(urlinfo **urlArray, int left, int right)
+{
+    int center = (left+right)/2;
+    
+    if (urlArray[left]->hubScore > urlArray[center]->hubScore)
+        swap(urlArray, left, center);
+    
+    if (urlArray[left]->hubScore > urlArray[right]->hubScore)
+        swap(urlArray, left, right);
+    
+    if (urlArray[center]->hubScore > urlArray[right]->hubScore)
+        swap(urlArray, center, right);
+    
+    swap(urlArray, center, right-1);
+    return urlArray[right-1]->hubScore;
+}
+
+/* Partitions the portion of the array so that all elements to the right of
+ * the pivot are greater than the pivot and all elements to the left of the
+ * pivot are less than the pivot. Returns the index of the pivot.
+ */
+ int partition_it_hub(urlinfo **urlArray, int left, int right, double pivot)
+{
+    int leftPtr = left;
+    int rightPtr = right - 1;
+    while(1)
+    {
+        while(urlArray[++leftPtr]->hubScore < pivot); //nop, find bigger
+        while(urlArray[--rightPtr]->hubScore > pivot); //nop. find smaller
+        
+        if (leftPtr >= rightPtr)
+            break;
+        else
+            swap(urlArray, leftPtr, rightPtr);
+    }
+    swap(urlArray, leftPtr, right-1);
+    return leftPtr;
+}
+
+/*
+ * Insertion sort to handle small sub-arrays.
+ */
+void insertion_sort_hub(urlinfo **urlArray, int left, int right)
+{
+    int in, out;
+    
+    for (out = left +1; out <= right; out++)
+    {
+        urlinfo *temp = urlArray[out];
+        in = out;
+        
+        while (in > left && urlArray[in-1]->hubScore >= temp->hubScore)
         {
             urlArray[in] = urlArray[in-1];
             --in;

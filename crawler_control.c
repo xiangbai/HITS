@@ -26,8 +26,8 @@
 #define BUFFER_SIZE 4096
 #define PORT_80 "80"
 
-#define ROOT_GRAPH_SIZE			200
-#define MAX_BACKLINKS			50
+#define ROOT_GRAPH_SIZE			10
+#define MAX_BACKLINKS			3
 
 #define MAX_DOMAIN_TO_DOMAIN	4
 
@@ -301,9 +301,36 @@ int main()
 	
 	// sort
 	puts("sorting..");
-	rank_sort(super_set_array, num_links);
 	
+	// rank by hub
+	rank_sort_hub(super_set_array, num_links);
+
 #ifdef LOG_HITS_RESULTS
+	// sort by hub score
+	char results_hub_filename[BUFFER_SIZE];
+	strcpy(results_hub_filename, "searches/");
+	strcat(results_hub_filename, search_string);
+	strcat(results_hub_filename, "_results_hub");
+	FILE *hits_results_hub_file = fopen(results_hub_filename, "w");
+	fprintf(hits_results_hub_file, "ROOT GRAPH SIZE = %d\n", ROOT_GRAPH_SIZE);
+	fprintf(hits_results_hub_file, "MAX BACKLINKS = %d\n", MAX_BACKLINKS);
+	fprintf(hits_results_hub_file, "MAX DOMAIN-TO-DOMAIN = %d\n", MAX_DOMAIN_TO_DOMAIN);
+	fprintf(hits_results_hub_file, "----------------------\n");
+	
+	for (i = num_links - 1; i >= 0; i--)
+	{
+		char *url_name = url_tostring(super_set_array[i]);
+		fprintf(hits_results_hub_file, "%lf\t%s\n",
+				super_set_array[i]->hubScore, url_name);
+		free(url_name);
+	}
+#endif
+
+	// rank by authority
+	rank_sort(super_set_array, num_links);
+
+#ifdef LOG_HITS_RESULTS
+	// sort by authority score
 	char results_filename[BUFFER_SIZE];
 	strcpy(results_filename, "searches/");
 	strcat(results_filename, search_string);
@@ -322,8 +349,8 @@ int main()
 	{
 		char *url_name = url_tostring(super_set_array[i]);
 #ifdef LOG_HITS_RESULTS
-		fprintf(hits_results_file, "%lf\t%lf\t%s\n",
-				super_set_array[i]->authScore, super_set_array[i]->hubScore, url_name);
+		fprintf(hits_results_file, "%lf\t%s\n",
+				super_set_array[i]->authScore, url_name);
 #endif
 		printf("%lf\t%lf\t%s\n", super_set_array[i]->authScore,
 			   super_set_array[i]->hubScore, url_name);

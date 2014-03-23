@@ -11,7 +11,7 @@
  * urlArray[0] is min value and urlArray[urlSize-1] is max value.
  ***************************************************************/
 void rank_sort(urlinfo **urlArray, int urlSize);
-
+void rank_sort_hub(urlinfo **urlArray, int urlSize);
 
 //Hidden functions in ranksort.c
 /*
