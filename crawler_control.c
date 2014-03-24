@@ -26,8 +26,8 @@
 #define BUFFER_SIZE 4096
 #define PORT_80 "80"
 
-#define ROOT_GRAPH_SIZE			200
-#define MAX_BACKLINKS			50
+#define ROOT_GRAPH_SIZE			50
+#define MAX_BACKLINKS			10
 
 #define MAX_DOMAIN_TO_DOMAIN	4
 
@@ -54,6 +54,8 @@ char *userAgents[9] =
 	"Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36"};
 
 
+domaininfo *get_domain(urlinfo *url);
+int domain_test(urlinfo *from, urlinfo *to, int *num_domain_links);
 string_redirect *find_redirect(char* url);
 char *loadPage(int socket);
 void clean_search_results(string_llist *tags_and_urls, string_llist *destination);
@@ -1105,7 +1107,7 @@ void clean_outlinks(url_w_string_links *current_url, int add_urls)
 				 * See if domain of current url may still link to domain of new url
 				 */
 				// make dummy domaininfos for searching purposes
-				domaininfo *desired_domain = domaininfo_init(current_url->url->host);
+				/*domaininfo *desired_domain = domaininfo_init(current_url->url->host);
 				
 				if (desired_domain->name == NULL)
 				{
@@ -1148,9 +1150,11 @@ void clean_outlinks(url_w_string_links *current_url, int add_urls)
 				free(todomain);
 				
 				// if there is room for more links to new domain, add the link to all_links and domain.outlinks
-				if (num_domain_links < MAX_DOMAIN_TO_DOMAIN)
+				if (num_domain_links < MAX_DOMAIN_TO_DOMAIN)*/
+				int num_domain_links;
+				if (domain_test(current_url->url, desired_url, &num_domain_links))
 				{
-					printf("\nclean_outlinks: num_links %d < md2d %d\n", num_domain_links, MAX_DOMAIN_TO_DOMAIN);
+					//printf("\nclean_outlinks: num_links %d < md2d %d\n", num_domain_links, MAX_DOMAIN_TO_DOMAIN);
 					if (found_url) // if NOT found in all_links, check redir_tree
 					{
 						okay_to_link = 1;
@@ -1194,6 +1198,8 @@ void clean_outlinks(url_w_string_links *current_url, int add_urls)
 						fprintf(intrinsic_file, "adding %s\n", url_tostring(found_url));
 #endif
 						string_llist_push_back(&current_url->outlinks, new_string_link);
+						
+						domaininfo *fromdomain = get_domain(current_url->url);
 						domaininfo_puturl(fromdomain, found_url);
 						
 #ifdef LOG_LINKS
@@ -1632,4 +1638,54 @@ int get_outlinks_and_populate(urlinfo *cur_url, btree *all_links, llist *urls_w_
 	btree_insert(all_links, cur_url);
 	
 	return 1; //to keep things happy, returns 1 no matter what right now
+}
+
+/*
+ * Check if it's still okay to link from-domain to to-domain
+ * This is based on the number of links between the domains
+ *
+ * returns 1 for succes
+ * returns 0 for fail
+ */
+int domain_test(urlinfo *from, urlinfo *to, int *num_domain_links)
+{
+	domaininfo *fromdomain = get_domain(from);
+	if (!fromdomain)
+		return 0;
+
+	domaininfo *todomain = get_domain(to);
+	if (!todomain)
+		return 0;	
+					
+	*num_domain_links = domaininfo_numlinks_to_domain(fromdomain, todomain);
+
+	// if there is room for more links to new domain, add the link to all_links and domain.outlinks
+	if (*num_domain_links < MAX_DOMAIN_TO_DOMAIN)
+		return 1;	// pass
+	else
+		return 0;	// fail
+}
+
+domaininfo *get_domain(urlinfo *url)
+{
+	domaininfo *dummy_domain = domaininfo_init(url->host);
+	
+	// return failure if domaininfo can't be made
+	if (!dummy_domain || dummy_domain->name == NULL)
+		return NULL;
+	
+	domaininfo *valid_domain = btree_find(&domains, dummy_domain);
+					
+	if (valid_domain == NULL)	// if desired domain not in domains, it is the new fromdomain
+	{
+		valid_domain = dummy_domain;		// set fromdomain for use later in function
+		btree_insert(&domains, valid_domain);	// insert new domain into tree
+	}
+	else
+	{	// desired_domain is a duplicate; free it
+		freedomain(dummy_domain);
+		free(dummy_domain);
+	}
+	
+	return valid_domain;
 }
