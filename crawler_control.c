@@ -1231,6 +1231,7 @@ void clean_outlinks(url_w_string_links *current_url, int add_urls)
 		}
 		//free(new_string_link);
 		num_outlinks_to_check--;
+		desired_url = NULL;
 	}
 }
 
