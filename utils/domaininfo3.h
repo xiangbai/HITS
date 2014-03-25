@@ -15,19 +15,19 @@
  * 
  * Sample Structure:
  * 
- * domaininfo	domainlink	   urlinfo
- * ----------	----------	-------------------
- * 						   *-- a.com/index.html
- * 						  /
- *			   *- a.com -*
- * 			  /		 	  \
- * 			 /			   *-- a.com/test.html
+ * domaininfo	domainlink	  
+ * ----------	----------	
+ * 						   
+ * 						  
+ *			   *- a.com 
+ * 			  /		 	 
+ * 			 /			   
  * d.com   -*
- * 			 \			   *-- b.com/index.html
- * 			  \     	  /
- * 			   *- b.com -*
- * 						  \
- * 						   *-- b.com/hello.html
+ * 			 \			   
+ * 			  \     	  
+ * 			   *- b.com 
+ * 						 
+ * 						   
  * 
  ************************************************/
 
