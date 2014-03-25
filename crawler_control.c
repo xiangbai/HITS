@@ -9,7 +9,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include "hits.h"
-#include "utils/domaininfo2.h"
+#include "utils/domaininfo3.h"
 #include "utils/string_linked_list.h"
 #include "utils/parser.h"
 #include "utils/progress_bar.h"
@@ -54,7 +54,7 @@ char *userAgents[9] =
 	"Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36"};
 
 
-domaininfo2 *get_domain(urlinfo *url);
+domaininfo3 *get_domain(urlinfo *url);
 int domain_test(urlinfo *from, urlinfo *to, int *num_domain_links);
 string_redirect *find_redirect(char* url);
 char *loadPage(int socket);
@@ -1199,8 +1199,9 @@ void clean_outlinks(url_w_string_links *current_url, int add_urls)
 #endif
 						string_llist_push_back(&current_url->outlinks, new_string_link);
 						
-						domaininfo2 *fromdomain = get_domain(current_url->url);
-						domaininfo_puturl(fromdomain, found_url);
+						domaininfo3 *fromdomain = get_domain(current_url->url);
+						domaininfo3 *todomain = get_domain(found_url);
+						domaininfo_puturl(fromdomain, todomain);
 						
 #ifdef LOG_LINKS
 						char *temp1 = url_tostring(current_url->url);
@@ -1451,7 +1452,7 @@ void get_back_links2(urlinfo *engine, urlinfo *current_url, char *port_string, c
 			if (backlink)
 			{
 				int num_links;
-				int valid_domain_to_page = domain_test(backlink, current_url, &num_links);
+				int valid_domain_to_domain = domain_test(backlink, current_url, &num_links);
 				/*
 				//check domains
 				domaininfo *backlink_domain = domaininfo_init(backlink->host);
@@ -1471,12 +1472,13 @@ void get_back_links2(urlinfo *engine, urlinfo *current_url, char *port_string, c
 				domaininfo *current_url_domain = domaininfo_init(current_url->host);
 				int num_links = domaininfo_numlinks_to_domain(desired_backlink_domain, current_url_domain);
 				*/
-				if (valid_domain_to_page)
+				if (valid_domain_to_domain)
 				{
 					printf("\nnum links = %d, MD2D = %d, -> adding inlink\n", num_links, MAX_DOMAIN_TO_DOMAIN);
 						
-					domaininfo2 *fromdomain = get_domain(backlink);
-					domaininfo_puturl(fromdomain, current_url);
+					domaininfo3 *fromdomain = get_domain(backlink);
+					domaininfo3 *todomain = get_domain(current_url);
+					domaininfo_puturl(fromdomain, todomain);
 					//domaininfo_puturl(desired_backlink_domain, current_url);
 					
 					urlinfo *desired_backlink = btree_find(&linksfound, backlink);
@@ -1656,15 +1658,19 @@ int get_outlinks_and_populate(urlinfo *cur_url, btree *all_links, llist *urls_w_
  */
 int domain_test(urlinfo *from, urlinfo *to, int *num_domain_links)
 {
-	domaininfo2 *fromdomain = get_domain(from);
+	domaininfo3 *fromdomain = get_domain(from);
 	if (!fromdomain)
 		return 0;
 
+	domaininfo3 *todomain = get_domain(to);
+	if (!todomain)
+		return 0;
+	
 	//domaininfo *todomain = get_domain(to);
 	//if (!todomain)
 	//	return 0;	
-					
-	*num_domain_links = domaininfo_numlinks_to_page(fromdomain, to);
+	
+	*num_domain_links = domaininfo_numlinks_to_domain(fromdomain, todomain);
 
 	// if there is room for more links to new domain, add the link to all_links and domain.outlinks
 	if (*num_domain_links < MAX_DOMAIN_TO_DOMAIN)
@@ -1673,15 +1679,15 @@ int domain_test(urlinfo *from, urlinfo *to, int *num_domain_links)
 		return 0;	// fail
 }
 
-domaininfo2 *get_domain(urlinfo *url)
+domaininfo3 *get_domain(urlinfo *url)
 {
-	domaininfo2 *dummy_domain = domaininfo_init(url->host);
+	domaininfo3 *dummy_domain = domaininfo_init(url->host);
 	
 	// return failure if domaininfo can't be made
 	if (!dummy_domain || dummy_domain->name == NULL)
 		return NULL;
 	
-	domaininfo2 *valid_domain = btree_find(&domains, dummy_domain);
+	domaininfo3 *valid_domain = btree_find(&domains, dummy_domain);
 					
 	if (valid_domain == NULL)	// if desired domain not in domains, it is the new fromdomain
 	{

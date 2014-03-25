@@ -6,7 +6,7 @@
  * =======================================================================
  */
 
-#include "utils/domaininfo2.h"
+#include "utils/domaininfo3.h"
 #include "urlinfo.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,13 +18,13 @@ int main(void)
 	// initialize domain regex
 	domain_regex_init();
 	
-	domaininfo2* domaina = domaininfo_init("google.com");
+	domaininfo3* domaina = domaininfo_init("stackexchange.com");
 
 	/* test domains */
-	domaininfo2* domainb = domaininfo_init("test.google.com");
-	domaininfo2* domainc = domaininfo_init("google2.com");
-	domaininfo2* domaind = domaininfo_init("agoogle.net");
-	domaininfo2 *domains[] = {domainb, domainc, domaind};	
+	domaininfo3* domainb = domaininfo_init("math.stackexchange.com");
+	domaininfo3* domainc = domaininfo_init("google.stackexchange.com");
+	domaininfo3* domaind = domaininfo_init("stacks.stackexchange.com");
+	domaininfo3 *domains[] = {domainb, domainc, domaind};	
 	
 	for (i = 0; i < 3; i++)
 	{
@@ -34,29 +34,30 @@ int main(void)
 	puts("*********************************");
 	
 	/* test urls */
-	urlinfo* a = makeURLfromlink("test.com/a.html", NULL);
-	urlinfo* b = makeURLfromlink("test.com/b.html", NULL);
-	urlinfo* c = makeURLfromlink("test.com/c.html", NULL);
-	urlinfo* d = makeURLfromlink("test.com/c.html", NULL);
-	urlinfo* e = makeURLfromlink("test.com/c.html", NULL);
-	urlinfo* f = makeURLfromlink("test.com/c.html", NULL);
-	urlinfo* g = makeURLfromlink("test.com/c.html", NULL);
-	urlinfo* h = makeURLfromlink("test.com/c.html", NULL);
+	urlinfo* a = makeURLfromlink("stackexchange.com/a.html", NULL);
+	urlinfo* b = makeURLfromlink("test.stackexchange.com/b.html", NULL);
+	urlinfo* c = makeURLfromlink("food.stackexchange.com/c.html", NULL);
+	urlinfo* d = makeURLfromlink("dog.stackexchange.com/c.html", NULL);
+	urlinfo* e = makeURLfromlink("www.w.stackexchange.com/c.html", NULL);
+	urlinfo* f = makeURLfromlink("ask.stackexchange.com/c.html", NULL);
+	urlinfo* g = makeURLfromlink("null.stackexchange.com/c.html", NULL);
+	urlinfo* h = makeURLfromlink("last.stackexchange.com/c.html", NULL);
 
 	urlinfo* urls[] = {a, b, c, d, e, f, g, h};
 	
 	for (i = 0; i < 8; i++)
 	{
 		// make associated domain (may be discarded)
-		domaininfo2 *newdomain = domaininfo_init(urls[i]->host);
+		domaininfo3 *newdomain = domaininfo_init(urls[i]->host);
 
-		int currentnum = domaininfo_numlinks_to_page(domaina, urls[i]);
+		int currentnum = domaininfo_numlinks_to_domain(domaina, newdomain);
 		
 		printf("current num links: %d\n", currentnum);
 		if (currentnum < 2)
 		{
 			puts("adding url");
-			domaininfo_puturl(domaina, urls[i]);
+			domaininfo3 *dummy = domaininfo_init(urls[i]->host);
+			domaininfo_puturl(domaina, dummy);
 		}
 		else
 		{
